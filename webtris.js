@@ -5,6 +5,14 @@
 //EVERYTHING related to the grid should be
 //accessed by [row][column], not [x][y]
 
+//firstly disable the keys from scrolling the page
+window.addEventListener("keydown", function(e) {
+    // each arrow key and space
+    if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+        e.preventDefault();
+    }
+}, false);
+
 const NUM_ROWS = 20
 const NUM_COLUMNS = 10
 const IMG_SCALE = .5 //.3125
