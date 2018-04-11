@@ -72,7 +72,6 @@ function Queue() {
 }
 
 
-
 //The data structure representing a tetris piece
 function Tetromino(startColour, startGrid) {
   this.colour = startColour
@@ -84,7 +83,6 @@ function Tetromino(startColour, startGrid) {
   //everytime the grid changes
   this.recalculateBounds()
 }
-
 
 
 //rotate the piece, clockwise if parameter is true
@@ -116,7 +114,6 @@ Tetromino.prototype.rotate = function(clockwise) {
   //update the new boundaries for the tetromino
   this.recalculateBounds()
 }
-
 
 
 //returns 2 coordinates in an array
@@ -174,7 +171,6 @@ Tetromino.prototype.recalculateBounds = function() {
 }
 
 
-
 //debug function for printing the 
 //representation of the shape to the console
 Tetromino.prototype.logShape = function() {
@@ -194,13 +190,11 @@ Tetromino.prototype.logShape = function() {
 }
 
 
-
 Tetromino.prototype.logBounds = function() {
   console.log("Tetromino bounds:")
   console.log("\t[" + this.bounds[0][0] + ", " + this.bounds[0][1] + "]")
   console.log("\t[" + this.bounds[1][0] + ", " + this.bounds[1][1] + "]")
 }
-
 
 
 //define preset tetros colour and shape
@@ -273,13 +267,11 @@ Tetromino.presets = {
 }
 
 
-
 function Piece(initialTetro, xPos, yPos) {
   this.x = xPos
   this.y = yPos
   this.tetro = initialTetro
 }
-
 
 
 //checks if the given piece will go outside
@@ -308,7 +300,6 @@ Game.prototype.pieceOutOfBounds = function(aPiece) {
   
   return result
 }
-
 
 
 //checks if the piece overlaps
@@ -346,7 +337,6 @@ Game.prototype.pieceWouldOverlap = function(aPiece) {
 }
 
 
-
 //returns a random property 
 //from Tetromino.presets
 Tetromino.getRandomPreset = function() {
@@ -357,7 +347,6 @@ Tetromino.getRandomPreset = function() {
 }
 
 
-
 const directions = {
   //shapes don't move up
   NONE: 0,
@@ -365,7 +354,6 @@ const directions = {
   DOWN: 2,
   LEFT: 3
 }
-
 
 
 function Game() {
@@ -400,7 +388,6 @@ function Game() {
 }
 
 
-
 Game.prototype.init = function() {
   for (var y = 0; y < NUM_ROWS; y++) {
     this.board[y] = []
@@ -417,7 +404,6 @@ Game.prototype.init = function() {
 
   this.spawnPiece()
 }
-
 
 
 Game.prototype.update = function() {
@@ -464,7 +450,6 @@ Game.prototype.update = function() {
 }
 
 
-
 //performs a check on the line given
 //in 'lineIndex' based on 'checkToDo'
 Game.prototype.lineCheck = function(lineIndex, checkToDo) {
@@ -495,7 +480,6 @@ Game.prototype.lineCheck = function(lineIndex, checkToDo) {
 }
 
 
-
 //copy the line above the given
 //line, to the given line. Function
 //that will run whenever a full line is
@@ -507,7 +491,6 @@ Game.prototype.clearLine = function (lineIndex) {
     }
   }
 }
-
 
 
 //checks for full lines and clears them
@@ -533,7 +516,6 @@ Game.prototype.clearFullLines = function() {
   }
   return linesCleared
 }
-
 
 
 //creates a new piece, sets it to be the active
@@ -575,7 +557,6 @@ Game.prototype.spawnPiece = function() {
   }
   return success
 }
-
 
 
 //move the active piece if possible
@@ -639,7 +620,6 @@ Game.prototype.move = function(direction) {
 }
 
 
-
 Game.prototype.hold = function() {
   if(this.canHold)
   {
@@ -668,7 +648,6 @@ Game.prototype.hold = function() {
 }
 
 
-
 //keeps moving the piece down until 
 //it can't be moved anymore
 Game.prototype.instantPlace = function() {
@@ -679,7 +658,6 @@ Game.prototype.instantPlace = function() {
   this.lastUpdateFailed = true
   this.update()
 }
-
 
 
 //the action to be performed when the player
@@ -741,7 +719,6 @@ Game.prototype.spin = function(clockwise) {
 }
 
 
-
 //sets whether the active piece is on the board
 //or not. If the input is true, remove the active 
 //piece from the board. Else, add it. 
@@ -772,11 +749,9 @@ Game.prototype.setActivePieceOnBoard = function(willAdd) {
 }
 
 
-
 //********************************************************************\\
 //********************************************************************\\
 //********************************************************************\\
-
 
 
 var colours = [
@@ -810,27 +785,25 @@ var timeSinceKeyHold = 0
 function setup() {
   theCanvas = createCanvas(WIDTH + 50 + (3 * SQUARE_SIZE), HEIGHT)
   
-  theCanvas.parent("p5parent")
+  theCanvas.parent("game")
   background(65)
 
   aGame.init()
 
-
   //load images for squares
-  images[0] = loadImage('projects/webtris/resources/squares/red.png')
-  images[1] = loadImage('projects/webtris/resources/squares/orange.png')
-  images[2] = loadImage('projects/webtris/resources/squares/yellow.png')
-  images[3] = loadImage('projects/webtris/resources/squares/green.png')
-  images[4] = loadImage('projects/webtris/resources/squares/blue.png')
-  images[5] = loadImage('projects/webtris/resources/squares/purple.png')
-  images[6] = loadImage('projects/webtris/resources/squares/cyan.png')
+  images[0] = loadImage('resources/squares/red.png')
+  images[1] = loadImage('resources/squares/orange.png')
+  images[2] = loadImage('resources/squares/yellow.png')
+  images[3] = loadImage('resources/squares/green.png')
+  images[4] = loadImage('resources/squares/blue.png')
+  images[5] = loadImage('resources/squares/purple.png')
+  images[6] = loadImage('resources/squares/cyan.png')
 
   gameTime = millis()
 
   //probably move this
   textSize(50)
 }
-
 
 
 function draw() {
@@ -870,7 +843,6 @@ function draw() {
     text("Game Over", (width / 2) - 200, height / 2)
   }
 }
-
 
 
 //handle key events
@@ -944,7 +916,6 @@ function keyPressed() {
 }
 
 
-
 function keyReleased() {
   switch (keyCode) {
     case 65: //a OR
@@ -988,7 +959,6 @@ function keyReleased() {
 }
 
 
-
 //checks if given x and y coordinates
 //are in the board, includes all 
 //edges
@@ -998,7 +968,6 @@ function inBoardBoundaries(yPos, xPos) {
          (xPos < NUM_COLUMNS) &&
          (yPos < NUM_ROWS)
 }
-
 
 
 function drawBoard(aBoard) {
@@ -1054,7 +1023,6 @@ function drawBoard(aBoard) {
 }
 
 
-
 //draw the guidelines either side of
 //the active piece
 function drawGuideLines(theGame) {
@@ -1067,7 +1035,6 @@ function drawGuideLines(theGame) {
   line(leftX, SQUARE_SIZE * 2, leftX, height)
   line(rightX, SQUARE_SIZE * 2, rightX, height)
 }
-
 
 
 function drawHoldSlot(shapeInSlot) {
@@ -1096,7 +1063,6 @@ function drawHoldSlot(shapeInSlot) {
 }
 
 
-
 //NOT for drawing the active shape, that should be drawn
 //as part of the grid. This just draws a picture of a shape
 //at a given location and scale
@@ -1118,7 +1084,6 @@ function drawShape(shape, scale, xPos, yPos) {
     }
   }
 }
-
 
 
 function drawQueue(aQueue) {
@@ -1150,7 +1115,6 @@ function drawQueue(aQueue) {
 
   //drawShape(Tetromino.presets.leftStairShape, 0.7, 100, 100)
 }
-
 
 
 //debug function for drawing dots at board coordinates
