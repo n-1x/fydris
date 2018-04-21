@@ -189,7 +189,7 @@ class Point {
 class ActiveTetro {
   constructor(tetro = TETRO.iShape) {
     this.tetro = tetro
-    this.pos = new Point(17, BOARD_WIDTH / 2 - 1)
+    this.pos = new Point(19, BOARD_WIDTH / 2 - 1)
     this.orientation = 0
     this.grid = this.tetro.rotations[this.orientation]
 
@@ -224,7 +224,7 @@ class Game {
   }
 
 
-  update() {
+  fall() {
     if (!this.move(DIRECTION.DOWN)) {
       this.finishTurn()
     }
@@ -302,9 +302,7 @@ class Game {
       if (this.level > MAX_LEVEL) {
         this.gameOver = true
       }
-    }
-
-    
+    }    
   }
 
 
@@ -582,7 +580,7 @@ function draw() {
       if (game.gameOver) {
         state = STATE.GAME_OVER
       } else if (timeSinceLastUpdate >= fallSpeed) {
-        game.update()
+        game.fall()
 
         //reset the timer
         timeOfLastDrop = lastFrameDrawTime
