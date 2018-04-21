@@ -1,1124 +1,867 @@
-//sketch.js
-//Author: Nicholas J D Dean
-//Date created: 2017-06-28
-//Notes: 
-//EVERYTHING related to the grid should be
-//accessed by [row][column], not [x][y]
+const BOARD_WIDTH = 10 //tetris guideline
+const BOARD_HEIGHT = 40 //tetris guideline
+const BUFFER_ZONE_HEIGHT = 20 //tetris guideline
+//pixels per cell
+const CELL_SIZE = 30
+//amount of tetros you can see in advance, tetris guideline
+const NEXT_SIZE = 6 
+const MAX_LEVEL = 15 //tetris guideline
+const FIXED_GOAL = 10 //lines per level
+const AUTO_REPEAT_FREQ = 50 //tetris guideline
+const AUTO_REPEAT_DELAY = 300 //tetris guideline
 
-//firstly disable the keys from scrolling the page
-window.addEventListener("keydown", function(e) {
-    // each arrow key and space
-    if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
-        e.preventDefault();
-    }
-}, false);
+const LEFT_MARGIN = 8 * CELL_SIZE
+const RIGHT_MARGIN = 8 * CELL_SIZE
 
-const NUM_ROWS = 20
-const NUM_COLUMNS = 10
-const IMG_SCALE = .5 //.3125
-const SQUARE_SIZE = (64 * IMG_SCALE)
-const WIDTH = SQUARE_SIZE * NUM_COLUMNS
-const HEIGHT = SQUARE_SIZE * NUM_ROWS
-
-//simple queue implementation for the shape queue
-function Queue() {
-  //
-  this.QueueElement = function(d, n) {
-    this.data = d
-    this.next = n
-  }
-
-  this.top = null
-  this.back = null
-  this.size = 0
-
-  this.moveQueue = function() {
-    var value = this.top.data
-
-    if (this.size > 0) {
-      this.top = this.top.next
-      --this.size
-    }
-    return value
-  }
-
-  this.addElement = function(newData) {
-    var newElement = new this.QueueElement(newData, null)
-
-    if (this.size === 0) {
-      this.top = newElement
-      this.back = newElement
-    }
-    else {
-      this.back.next = newElement
-      this.back = newElement
-    }
-    ++this.size
-  }
-
-  this.getNthElement = function(n) {
-    var pointer = this.top
-    var value = undefined
-
-    if (this.size > n) {
-      for (var y = 0; y <= n; y++) {
-        value = pointer.data
-        pointer = pointer.next
-      }
-    }
-
-    return value
-  }
+const COLOUR = {
+  WHITE: [255, 255, 255],
+  RED: [209, 41, 0],
+  ORANGE: [209, 121, 0],
+  YELLOW: [209, 205, 0],
+  GREEN: [0, 209, 66],
+  LIGHT_BLUE: [0, 209, 209],
+  BLUE: [0, 62, 209],
+  PURPLE: [128, 0, 209],
+  MAGENTA: [255, 0, 255],
+  NIGHT: [42, 41, 45]
 }
 
-
-//The data structure representing a tetris piece
-function Tetromino(startColour, startGrid) {
-  this.colour = startColour
-  this.grid = startGrid
-  //the bounds are the coordinates of the top left
-  //and the bottom right points of the grid that are used.
-  //these are needed for calculating whether the tetromino
-  //is in bounds or not. They should be recalculated
-  //everytime the grid changes
-  this.recalculateBounds()
-}
-
-
-//rotate the piece, clockwise if parameter is true
-Tetromino.prototype.rotate = function(clockwise) {
-  var oldGrid = this.grid
-  var newGrid = [] //will hold all the new rows
-  var oldWidth = oldGrid[0].length
-  var oldHeight = oldGrid.length
-    
-  for (var y = 0; y < oldWidth; y++) {
-    var newRow = [] //first row of the new shape
-
-    for (var x = 0; x < oldHeight; x++) {
-
-      if (clockwise) { //rotate clockwise
-        newRow[x] = oldGrid[oldHeight - x - 1][y]
-      }
-      else { //rotate anticlockwise
-        newRow[x] = oldGrid[x][oldWidth - y - 1]
-      }
-    }
-    //add the new row
-    newGrid[y] = newRow
-  }
-
-  //replace the old grid with the rotated one
-  this.grid = newGrid
-
-  //update the new boundaries for the tetromino
-  this.recalculateBounds()
-}
-
-
-//returns 2 coordinates in an array
-//[[topY, leftX], [bottomY, rightX]] of the top left
-//and bottom right parts of the shape in 
-//the grid respectively
-Tetromino.prototype.recalculateBounds = function() {
-  //start at top left and read like a book
-  //first non zero piece is the top left
-  var pointFound = false
-
-  var bottomY = 0,
-      topY = 0,
-      rightX = 0,
-      leftX = 0
-
-  this.bounds = []
-  var overallCounter = 0
-
-  //find the left, right, top, and bottom
-  //most parts of the grid that aren't 0
-  for (var y = 0; y < this.grid.length; y++) {
-    for (var x = 0; x < this.grid[0].length; x++) {
-
-       if (this.grid[y][x] != 0) {
-         if (!pointFound) { //first point found
-           pointFound = true
-
-           bottomY = y
-           topY = y
-           leftX = x
-           rightX = x
-         }
-         else {
-           //don't need to check for top
-           //here because the firs point 
-           //found will always be the one with
-           //the lowest y value
-           if (x < leftX) {
-             leftX = x
-           }
-           if (x > rightX) {
-             rightX = x
-           }
-           if (y > bottomY) {
-             bottomY = y
-           }
-         }
-       }
-       ++overallCounter
-    }
-  }
-  this.bounds[0] = [topY, leftX]
-  this.bounds[1] = [bottomY, rightX]
-}
-
-
-//debug function for printing the 
-//representation of the shape to the console
-Tetromino.prototype.logShape = function() {
-  var shapeWidth = this.grid[0].length
-  var shapeHeight = this.grid.length
-
-  var output = ''
-  for(var y = 0; y < shapeHeight; y++) {
-
-    for(var x = 0; x < shapeWidth; x++) {
-      output += this.grid[y][x] + ' '
-    }
-
-    output += '\n'
-  }
-  console.log(output)
-}
-
-
-Tetromino.prototype.logBounds = function() {
-  console.log("Tetromino bounds:")
-  console.log("\t[" + this.bounds[0][0] + ", " + this.bounds[0][1] + "]")
-  console.log("\t[" + this.bounds[1][0] + ", " + this.bounds[1][1] + "]")
-}
-
-
-//define preset tetros colour and shape
-//MUST be square because of recalculateBounds
-//relying on this to check for the boundaries
-//of each shape within its defined square
-Tetromino.presets = {
-  jShape: new Tetromino(
-    5,
-    [
-      [0, 1, 0],
-      [0, 1, 0],
-      [1, 1, 0]
-    ]
-),
-
-  lShape: new Tetromino(
-    2,
-    [
-      [0, 1, 0],
-      [0, 1, 0],
-      [0, 1, 1]
-    ]
-  ),
-
-  leftStairShape: new Tetromino(
-    1,
-    [
-      [0, 1, 1],
-      [1, 1, 0],
-      [0, 0, 0]
-    ]
-  ),
-
-  rightStairShape: new Tetromino(
-    4,
-    [
-      [1, 1, 0],
-      [0, 1, 1],
-      [0, 0, 0]
-    ]
-  ),
-
-  squareShape: new Tetromino(
-    3,
-    [
-      [1, 1],
-      [1, 1]
-    ]
-  ),
-
-  tShape: new Tetromino(
-    6,
-    [
-      [0, 1, 0],
-      [0, 1, 1],
-      [0, 1, 0]
-    ]
-  ),
-
-  iShape: new Tetromino(
-    7,
-    [
-      [0, 1, 0, 0],
-      [0, 1, 0, 0],
-      [0, 1, 0, 0],
-      [0, 1, 0, 0]
-    ]
-  )
-}
-
-
-function Piece(initialTetro, xPos, yPos) {
-  this.x = xPos
-  this.y = yPos
-  this.tetro = initialTetro
-}
-
-
-//checks if the given piece will go outside
-//of the board's boundaries
-Game.prototype.pieceOutOfBounds = function(aPiece) {
-  var result = false
-  var bounds = aPiece.tetro.bounds
-  var top = bounds[0][0]
-  var left = bounds[0][1]
-  var bottom = bounds[1][0]
-  var right = bounds[1][1]
-
-  //convert the shape boundaries to board positions
-  //by adding the shape's board coordinates
-  top += aPiece.y
-  left += aPiece.x
-  bottom += aPiece.y
-  right += aPiece.x
-  
-  if (
-    (!inBoardBoundaries(top, left)) || //top left of shape
-    (!inBoardBoundaries(bottom, right))    //bottom right of shape
-  ) {
-    result = true
-  }
-  
-  return result
-}
-
-
-//checks if the piece overlaps
-//pieces already on the given board. Make sure
-//that this piece isn't active on the board when
-//using this because that piece will count
-//for collision as well. a PIECE should be passed
-//NOT a SHAPE
-//returns true if given piece can be placed on the board
-//without overlap, false if not
-Game.prototype.pieceWouldOverlap = function(aPiece) {
-  var result = false
-  var xPos = aPiece.x
-  var yPos = aPiece.y
-  var shapeGrid = aPiece.tetro.grid
-
-  for (var y = 0; y < shapeGrid.length; y++) {
-    for (var x = 0; x < shapeGrid[0].length; x++) {
-      //if the space in shapegrid is used
-      if (shapeGrid[y][x] != 0) {
-        //check that it's not out of bounds on the 
-        //level before checking if that space is taken
-
-        if (inBoardBoundaries(yPos + y, xPos + x)) {
-          if (this.board[yPos + y][xPos + x] != 0) {
-            result = true
-          }
-        }
-
-      }
-
-    }
-  }
-  return result
-}
-
-
-//returns a random property 
-//from Tetromino.presets
-Tetromino.getRandomPreset = function() {
-  var possibleShapes = Object.keys(Tetromino.presets)
-  var randomIndex = Math.floor(random(0, possibleShapes.length))
-
-  return Tetromino.presets[possibleShapes[randomIndex]]
-}
-
-
-const directions = {
-  //shapes don't move up
+const DIRECTION = {
   NONE: 0,
-  RIGHT: 1,
-  DOWN: 2,
-  LEFT: 3
+  LEFT: 1,
+  RIGHT: 2,
+  UP: 3,
+  DOWN: 4,
+  CLOCKWISE: 5,
+  ANTI_CLOCKWISE: 6
+}
+
+const STATE = {
+  NONE: 0,
+  MENU: 1,
+  PAUSED: 2,
+  PLAYING: 3,
+  GAME_OVER: 4
 }
 
 
-function Game() {
-  this.timeSinceLastUpdate = 0
-  this.timeOfLastUpdate = 0
-  this.board = []      //the state of all squares in this game
-
-  this.activePiece = new Piece(
-    Tetromino.presets.jShape,
-    4,
-    2
-  )
-
-  this.lastUpdateFailed = false //2 updates need to fail for the next
-                               //piece to be spawned
-
-  //the TETRO in the hold slot
-  //a tetro is held, not a piece, as it 
-  //does not keep the location data
-  this.heldTetro = undefined
-
-  this.queueSize = 3
-  this.tetroQueue = new Queue()
-
-  //this.pieceQueue
-
-  this.gameOver = false
-  this.canHold = true  //determines whether the player
-                       //can use hold or not
-
-  this.softDropping = false
+//run the for each function on a grid
+function gridForEach(grid, func) {
+  grid.forEach((row, rowNum) => {
+    row.forEach((cell, colNum) => {
+      func(cell, rowNum, colNum)
+    })
+  })
 }
 
 
-Game.prototype.init = function() {
-  for (var y = 0; y < NUM_ROWS; y++) {
-    this.board[y] = []
+//run the some function on a grid
+function gridSome(grid, func) {
+  return grid.some((row, rowNum) => {
+    return row.some((cell, colNum) => {
+      return func(cell, rowNum, colNum)
+    })
+  })
+}
+
+
+class Tetro {
+  constructor(colour, grid) {
+    this.rotations = []
+    this.colour = colour
     
-    for (var x = 0; x < NUM_COLUMNS; x++) {
-      this.board[y][x] = 0
+    //the given grid will be rotation[0] of the Tetro
+    this.rotations[0] = grid
+
+    //private function for generating the rotations of the tetro
+    const rotateGrid = function(grid, direction) {
+      const newGrid = [] //will hold all the new rows
+      const oldWidth = grid[0].length
+      const oldHeight = grid.length
+        
+      for (let y = 0; y < oldWidth; ++y) {
+        const newRow = [] //first row of the new shape
+  
+        for (let x = 0; x < oldHeight; ++x) {
+          if (direction == DIRECTION.CLOCKWISE) {
+            newRow[x] = grid[oldHeight - x - 1][y]
+          }
+          else { //rotate anti-clockwise
+            newRow[x] = grid[x][oldWidth - y - 1]
+          }
+        }
+        //add the new row
+        newGrid[y] = newRow
+      }
+  
+      return newGrid
+    }
+
+    //generate the other 3 rotations
+    for(let i = 0; i < 3; ++i) {
+      this.rotations.push(rotateGrid(this.rotations[i], DIRECTION.CLOCKWISE))
     }
   }
-
-  //fill the queue with random pieces
-  for (var i = 0; i < this.queueSize; ++i) {
-    this.tetroQueue.addElement(Tetromino.getRandomPreset())
-  }
-
-  this.spawnPiece()
 }
 
 
-Game.prototype.update = function() {
+const TETRO = {
+  iShape: new Tetro(COLOUR.LIGHT_BLUE, [
+    [0, 0, 0, 0],
+    [1, 1, 1, 1],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0]
+  ]),
 
-  if(!this.gameOver) {
-    var couldMove = this.move(directions.DOWN)
+  jShape: new Tetro(COLOUR.BLUE, [
+    [1, 0, 0],
+    [1, 1, 1],
+    [0, 0, 0]
+  ]),
 
-    //when the player can't move, check for filled lines
-    //then spawn a new piece
-    if (!couldMove) {
-      if (this.lastUpdateFailed) {
-        //make sure to do this stuff
-        //like clearFullLines() before spawnPiece()
-        this.canHold = true
-        this.lastUpdateFailed = false
-        this.clearFullLines()
+  lShape: new Tetro(COLOUR.ORANGE, [
+    [0, 0, 1],
+    [1, 1, 1],
+    [0, 0, 0]
+  ]),
 
-        //try spawning new piece, if it fails, game over
-        if (!this.spawnPiece()) {
-          this.gameOver = true
-        }
-        //stop soft dropping carrying across pieces
-        this.softDropping = false
+  oShape: new Tetro(COLOUR.YELLOW, [
+    [1, 1],
+    [1, 1]
+  ]),
 
+  sShape: new Tetro(COLOUR.GREEN, [
+    [0, 1, 1],
+    [1, 1, 0],
+    [0, 0, 0]
+  ]),
+
+  tShape: new Tetro(COLOUR.PURPLE, [
+    [0, 1, 0],
+    [1, 1, 1],
+    [0, 0, 0]
+  ]),
+
+  zShape: new Tetro(COLOUR.RED, [
+    [1, 1, 0],
+    [0, 1, 1],
+    [0, 0, 0]
+  ])
+}
+
+
+class TetroBag {
+  constructor() {
+    this.bag = []
+    this.fillBag()
+  }
+
+  
+  fillBag() {
+    this.bag = Object.values(TETRO)
+
+    for (let i = this.bag.length - 1; i > 0; --i) {
+      const r = Math.floor(Math.random() * i);
+      [this.bag[i], this.bag[r]] = [this.bag[r], this.bag[i]]
+    }
+  }
+
+
+  take() {
+    if (this.bag.length === 0) {
+      this.fillBag()
+    }
+
+    return this.bag.shift()
+  }
+}
+
+
+class Point {
+  constructor(row, col) {
+    this.row = row
+    this.col = col
+  }
+}
+
+
+//defines a tetro that can be moved and spun by the player
+class ActiveTetro {
+  constructor(tetro = TETRO.iShape) {
+    this.tetro = tetro
+    this.pos = new Point(17, BOARD_WIDTH / 2 - 1)
+    this.orientation = 0
+    this.grid = this.tetro.rotations[this.orientation]
+
+    //make sure that the l piece is centered
+    if (this.tetro == TETRO.iShape) {
+      this.pos.col = BOARD_WIDTH / 2 - 2
+    }
+  }
+}
+
+
+class Game {
+  constructor() {
+    this.gameOver = false
+    this.ghostOffset = 0
+    this.tetroBag = new TetroBag()
+    this.next = []
+    this.holdSlot = null
+    this.score = 0
+    this.level = 1
+    this.fallSpeed = 1 //seconds per line
+    this.softDropping = false
+
+    this.stats = {
+      rowsCleared: 0,
+      tetrises: 0
+    }
+
+    this.initBoard()
+    this.initNext()
+    this.nextTetro()
+  }
+
+
+  update() {
+    if (!this.move(DIRECTION.DOWN)) {
+      this.finishTurn()
+    }
+  }
+  
+  
+  initBoard() {
+    this.board = []
+
+    //fill the board with height arrays of length width
+    //all filled with zeroes
+    for(let y = 0; y < BOARD_HEIGHT; ++y) {
+      const row = []
+
+      for(let x = 0; x < BOARD_WIDTH; ++x) {
+        row.push(0)
       }
-      else {
+
+      this.board.push(row)
+    }
+  }
+
+
+  initNext() {
+    for(let i = 0; i < NEXT_SIZE; ++i) {
+      this.next.push(this.tetroBag.take())
+    }
+  }
+
+
+  calculateFallSpeed() {
+    //algorithm from the tetris guideline
+    this.fallSpeed = Math.pow((0.8 - ((this.level - 1) * 0.007)), this.level - 1)
+  }
+
+
+  finishTurn() {
+    this.placeTetro()
+    
+    const rowsCleared = this.clearFullRows()
+    
+    this.stats.rowsCleared += rowsCleared
+
+    //update the score
+    switch(rowsCleared) {
+      case 1:
+      this.score += 100 * this.level
+      break
+      
+      case 2:
+      this.score += 200 * this.level
+      break
+      
+      case 3:
+      this.score += 500 * this.level
+      break
+      
+      case 4:
+      this.score += 800 * this.level
+      ++this.stats.tetrises
+      break
+    }
+    //needs to be after the rows are cleared so 
+    //ghost offset is correct
+    this.nextTetro()
+
+    //currenly uses the fixed goal system
+    if (this.stats.rowsCleared >= this.level * FIXED_GOAL) {
+      //cap the score at MAX_LEVEL
+      ++this.level
+
+      this.calculateFallSpeed()
+
+      //end of game in marathon mode
+      if (this.level > MAX_LEVEL) {
+        this.gameOver = true
+      }
+    }
+
+    
+  }
+
+
+  tetroFitsOnBoard(tetroGrid, rowPos, colPos) {
+    //return !someCell is full
+    return !gridSome(tetroGrid, (cell, r, c) => {
+      let cellFree = true
+      //if the cell of tetroGrid is not empty
+      if (cell) {
+        const row = this.board[r + rowPos]
+        
+        //if row is undefined then the cell won't be checked
+        cellFree = row && row[c + colPos] == 0
+      }
+  
+      return !cellFree
+    })
+  }
+
+
+  calculateGhostOffset() {
+    const pos = this.activeTetro.pos
+    this.ghostOffset = 0
+    
+    while (this.tetroFitsOnBoard(
+            this.activeTetro.grid,
+            pos.row + this.ghostOffset + 1,
+            pos.col)) {
+      ++this.ghostOffset
+    }
+  }
+
+
+  clearRow(rowNum) {
+    //from the row upwards, copy from the cell above
+    for(let r = rowNum; r >= 0; --r) {
+      const row = this.board[r]
+      
+      row.forEach((cell, cellNum) => {
+        let newVal = 0
+        
+        //if not top row
+        if (r != 0) {
+          newVal = this.board[r - 1][cellNum]
+        }
+        
+        this.board[r][cellNum] = newVal
+      })
+    }
+  }
+
+
+  clearFullRows() {
+    let rowsCleared = 0
+
+    this.board.forEach((row, rowNum) => {
+      const emptyFound = row.some(cell => cell == 0)
+
+      if (!emptyFound) {
+        this.clearRow(rowNum)        
+        ++rowsCleared
+      }
+    })
+
+    return rowsCleared
+  }
+
+
+  nextTetro() {
+    const newTetro = new ActiveTetro(this.next.shift())
+    this.next.push(this.tetroBag.take())
+
+    if (this.tetroFitsOnBoard(newTetro.tetro.rotations[0],
+                              newTetro.pos.row,
+                              newTetro.pos.col)) {
+      this.activeTetro = newTetro
+    } else {
+      this.gameOver = true
+    }
+
+    this.calculateGhostOffset()
+    this.canHold = true
+  }
+
+
+  holdTetro() {
+    if (this.canHold) {
+      if (this.holdSlot) {
+        [this.holdSlot, this.activeTetro] = [this.activeTetro.tetro, 
+                                             new ActiveTetro(this.holdSlot)]
+
+        this.calculateGhostOffset()
+      } else {
+        this.holdSlot = this.activeTetro.tetro
+        this.nextTetro()
+      }
+      
+      this.canHold = false
+    }
+  }
+
+
+  spin(direction) {
+    const pos = this.activeTetro.pos
+    let spinPossible = true
+    let newOrientation = this.activeTetro.orientation
+
+    if (direction === DIRECTION.CLOCKWISE) {
+      ++newOrientation
+    }
+    else if (direction === DIRECTION.ANTI_CLOCKWISE) {
+      --newOrientation
+    }
+
+    //make it circular
+    if (newOrientation < 0) {
+      newOrientation = 3
+    }
+    else if (newOrientation> 3) {
+      newOrientation = 0
+    }
+
+    const spunGrid = this.activeTetro.tetro.rotations[newOrientation]
+
+    spinPossible = this.tetroFitsOnBoard(spunGrid, pos.row, pos.col)
+
+    if (spinPossible) {
+      this.activeTetro.orientation = newOrientation
+      this.activeTetro.grid = spunGrid
+    }
+
+    this.calculateGhostOffset()
+
+    return spinPossible
+  }
+
+
+  move(direction) {
+    let rowNum = this.activeTetro.pos.row
+    let colNum = this.activeTetro.pos.col
+    let success = false
+
+    switch(direction) {
+      case DIRECTION.LEFT:
+        --colNum
+        break
+
+      case DIRECTION.RIGHT:
+        ++colNum
+        break
+
+      case DIRECTION.DOWN:
         if (this.softDropping) {
-          this.softDropping = false
+          ++this.score
         }
-        this.lastUpdateFailed = true
+        ++rowNum
+        break
+    }
+
+    success = this.tetroFitsOnBoard(this.activeTetro.grid, rowNum, colNum)
+
+    //actually move the piece if the move is allowed
+    if (success) {
+      this.activeTetro.pos.row = rowNum
+      this.activeTetro.pos.col = colNum
+    }
+
+    if (DIRECTION != DIRECTION.DOWN) {
+      this.calculateGhostOffset()
+    }
+
+    return success
+  }
+
+
+  placeTetro() {
+    gridForEach(this.activeTetro.grid, (cell, r, c) => {
+      if(cell) {
+        const rowPos = r + this.activeTetro.pos.row
+        const colPos = c + this.activeTetro.pos.col
+        const colour = this.activeTetro.tetro.colour
+        const colourIndex = Object.values(COLOUR).indexOf(colour)
+
+        this.board[rowPos][colPos] = colourIndex
       }
+    })
+  }
 
 
-    }
-
-    // if (!couldMove) {
-    //   this.clearFullLines()
-    //   if(!this.spawnPiece()) {
-    //     this.gameOver = true
-    //   }
-    // }
-
+  hardDrop() {
+    this.score += 2 * this.ghostOffset
+    //move the tetro to its ghost
+    this.activeTetro.pos.row += this.ghostOffset
+    this.finishTurn()
   }
 }
 
+/*************************************************************** */
 
-//performs a check on the line given
-//in 'lineIndex' based on 'checkToDo'
-Game.prototype.lineCheck = function(lineIndex, checkToDo) {
-  var result = true
+//variables to keep track of the time and keep
+//the game updating on schedule
+let timeOfLastDrop = 0
+let lastFrameDrawTime = 0
 
-  switch (checkToDo) {
-      case "full":
-        for (var x = 0; x < NUM_COLUMNS; x++) {
-          if (this.board[lineIndex][x] == 0) {
-            result = false
-          }
-        }
-        break
+let state = STATE.MENU
+let autoRepeatDirection = DIRECTION.NONE
+let autoRepeatStartTime = 0
+let lastAutoRepeatTime = 0
 
-      case "empty":
-        for (var x = 0; x < NUM_COLUMNS; x++) {
-          if (this.board[lineIndex][x] != 0) {
-            result = false
-          }
-        }
-        break
+let game = new Game()
 
-      default:
-        console.log("invalid lineCheck requested:" + checkToDo)
-        break
-  }
-  return result
-}
+let displayScore = 0
 
 
-//copy the line above the given
-//line, to the given line. Function
-//that will run whenever a full line is
-//detected
-Game.prototype.clearLine = function (lineIndex) {
-  for (var y = lineIndex; y > 0; y--) {
-    for (var x = 0; x < NUM_COLUMNS; x++) {
-        this.board[y][x] = this.board[y - 1][x] 
-    }
-  }
-}
-
-
-//checks for full lines and clears them
-//properly. Returns the number of lines 
-//cleared.
-Game.prototype.clearFullLines = function() {
-  var currentLine = NUM_ROWS - 1 //start at bottom
-  var linesCleared = 0 //track the number of cleared lines
+function preload() {
   
-  //can stop if the current line is empty
-  while ((currentLine >= 0) && (!this.lineCheck(currentLine, "empty"))) {
-    if (this.lineCheck(currentLine, "full")) {
-      this.clearLine(currentLine)
-      linesCleared++
-    }
-    else { 
-      //if a line was cleared, we need to recheck the
-      //same line because it now contains the contents 
-      //of the line that was above it. So only decrement
-      //on a non-full line
-      currentLine--
-    }
-  }
-  return linesCleared
 }
 
-
-//creates a new piece, sets it to be the active
-//piece and places it on the board
-//returns false if there was something in the way
-//of the spawn location
-Game.prototype.spawnPiece = function() {
-  //create a piece at the starting location
-  //with a random shape
-  var nextPiece = new Piece(
-    this.tetroQueue.moveQueue(), //next shape in queue
-    4, //xloc
-    2  //yloc
-  )
-  //add another piece to the back of the queue
-  this.tetroQueue.addElement(Tetromino.getRandomPreset())
-
-  var success = true
-
-  //if the piece DOES overlap, try moving it up
-  //by 1. Only do this twice max
-  var counter = 0
-  const maxMove = 2
-  
-  success = !this.pieceWouldOverlap(nextPiece)
-  while ((!success) && (counter < maxMove)) {
-    --nextPiece.y
-    ++counter
-
-    //check if piece now in bounds
-    success = !this.pieceWouldOverlap(nextPiece)
-  }
-
-  if (success) {
-    this.activePiece = nextPiece
-
-    //place it on the board
-    this.setActivePieceOnBoard(true)
-  }
-  return success
-}
-
-
-//move the active piece if possible
-Game.prototype.move = function(direction) {
-  var result = true
-
-  //currently identical to activePiece
-  //but needs to create a new one so we
-  //don't affect the active
-  var nextPiece = new Piece(
-    this.activePiece.tetro,
-    this.activePiece.x,
-    this.activePiece.y
-  )
-
-  switch (direction) {
-    case directions.DOWN:
-      nextPiece.y++
-      break
-
-    case directions.LEFT:
-      nextPiece.x--
-      break
-
-    case directions.RIGHT:
-      nextPiece.x++
-      break
-
-    case directions.NONE:
-      break
-
-    default:
-      console.log("checkMove called with invalid direction")
-      break
-  }
-
-  //remove active piece from board so
-  //it doesn't check for collision with its
-  //self
-  this.setActivePieceOnBoard(false)
-
-  //check if the next piece can be placed
-  if (
-    this.pieceOutOfBounds(nextPiece) ||
-    this.pieceWouldOverlap(nextPiece)
-  ) {
-    //if either of those are true, can't move
-    result = false
-  }
-  
-  if (result) {
-    //set the active piece to be the
-    //moved one before readding it to
-    //the board 
-    this.activePiece = nextPiece
-  }
-
-  //re add the current piece to the board
-  this.setActivePieceOnBoard(true)
-  return result
-}
-
-
-Game.prototype.hold = function() {
-  if(this.canHold)
-  {
-    this.setActivePieceOnBoard(false)
-
-    this.activePiece.x = 4
-    this.activePiece.y = 2
-
-    if (this.heldTetro == undefined) { //first hold of game
-      //store current shape
-      this.heldTetro = this.activePiece.tetro
-      //create new shape
-      this.spawnPiece()
-    }
-    else { 
-      //swap held shape with active
-      var tempPiece = this.heldTetro
-
-      this.heldTetro = this.activePiece.tetro
-      this.activePiece.tetro = tempPiece
-    }
-    this.setActivePieceOnBoard(true)
-
-    this.canHold = false
-  }
-}
-
-
-//keeps moving the piece down until 
-//it can't be moved anymore
-Game.prototype.instantPlace = function() {
-  //move() returns false when it
-  //can't move, so just loop
-  //until it stops returning true
-  while (this.move(directions.DOWN)) {}
-  this.lastUpdateFailed = true
-  this.update()
-}
-
-
-//the action to be performed when the player
-//tries to spin the active piece. Checks if the new
-//piece will fit in the level and not overlap
-Game.prototype.spin = function(clockwise) {
-  var success = false
-
-  this.setActivePieceOnBoard(false)
-
-  var rotatedPiece = new Piece(
-    new Tetromino(
-      this.activePiece.tetro.colour,
-      this.activePiece.tetro.grid
-    ),
-    this.activePiece.x,
-    this.activePiece.y
-  )
-  rotatedPiece.tetro.rotate(clockwise)
-
-  //try moving left to avoid the boundary
-  var counter = 0
-  const maxMove = 2
-  var originalX = rotatedPiece.x //reset to this if first test fails
-
-  success = !this.pieceOutOfBounds(rotatedPiece) && 
-            !this.pieceWouldOverlap(rotatedPiece)
-  
-  //move left until success or moved maxMove
-  while (!success && counter < maxMove) {
-    ++counter
-    --rotatedPiece.x
-    success = !this.pieceOutOfBounds(rotatedPiece) && 
-              !this.pieceWouldOverlap(rotatedPiece)
-  }
-
-  //try moving right if that didn't work
-  if (!success) {
-    rotatedPiece.x = originalX //reset after trying left
-    counter = 0 //reset counter
-  }
-  //move right until success or moved maxMove
-  while (!success && counter < maxMove) {
-    ++counter
-    ++rotatedPiece.x
-    success = !this.pieceOutOfBounds(rotatedPiece) && 
-              !this.pieceWouldOverlap(rotatedPiece)
-  }
-
-  if (success) { //succeeded
-    //replace the active shape with the spun one
-    this.activePiece = rotatedPiece
-  }
-
-  //place the piece on the board whether it was
-  //rotated or not
-  this.setActivePieceOnBoard(true)
-  return success
-}
-
-
-//sets whether the active piece is on the board
-//or not. If the input is true, remove the active 
-//piece from the board. Else, add it. 
-Game.prototype.setActivePieceOnBoard = function(willAdd) {
-  var thePiece = this.activePiece
-  var grid = thePiece.tetro.grid
-
-  for (var y = 0; y < grid.length; y++) {
-    for (var x = 0; x < grid[0].length; x++) {
-      if (grid[y][x] != 0) {
-        var newValue = 0
-
-        if (willAdd) {
-          newValue = this.activePiece.tetro.colour
-        }
-        var yPos = thePiece.y + y
-        var xPos = thePiece.x + x
-
-        if (inBoardBoundaries(yPos, xPos)) {
-          this.board[thePiece.y + y][thePiece.x + x] = newValue
-        }
-        else {
-          console.log("tried to add active piece out of board")
-        }
-      }
-    }
-  }
-}
-
-
-//********************************************************************\\
-//********************************************************************\\
-//********************************************************************\\
-
-
-var colours = [
-    '#fff',    //white
-    '#fa2400', //red
-    '#fa7900', //orange
-    '#fade00', //yellow
-    '#00fa00', //green
-    '#0069fa', //blue
-    '#c600fa', //purple
-    '#00defa', //lightblue
-    '#ff00ff'  //magenta
-  ]
-
-var images = []
-
-
-var aGame = new Game() //the main game object
-var fastUpdateFreq = 40
-var slowUpdateFreq = 750
-
-//vars for key holding. not needed for holding down
-//because that just changes to the fast update freq
-var keyRepeatFreq = 105                //frequency to move when a move key is held
-var heldKeyDirection = directions.NONE //the direction that the held key moves activePiece
-var leftKeyHeld = false        
-var rightKeyHeld = false
-var timeOfKeyHold = 0
-var timeSinceKeyHold = 0
 
 function setup() {
-  theCanvas = createCanvas(WIDTH + 50 + (3 * SQUARE_SIZE), HEIGHT)
+  const canvas = createCanvas(CELL_SIZE * BOARD_WIDTH + LEFT_MARGIN + RIGHT_MARGIN, 
+                              CELL_SIZE * (BOARD_HEIGHT - BUFFER_ZONE_HEIGHT ))
   
-  theCanvas.parent("game")
-  background(65)
-
-  aGame.init()
-
-  //load images for squares
-  images[0] = loadImage('resources/squares/red.png')
-  images[1] = loadImage('resources/squares/orange.png')
-  images[2] = loadImage('resources/squares/yellow.png')
-  images[3] = loadImage('resources/squares/green.png')
-  images[4] = loadImage('resources/squares/blue.png')
-  images[5] = loadImage('resources/squares/purple.png')
-  images[6] = loadImage('resources/squares/cyan.png')
-
-  gameTime = millis()
-
-  //probably move this
-  textSize(50)
+  canvas.parent("game")
+  timeOfLastDrop = millis()
 }
 
 
 function draw() {
-  if (!aGame.gameOver) {
-    var updateFreq = slowUpdateFreq
+  const time = millis()
+  const frameTime = time - lastFrameDrawTime
+  lastFrameDrawTime = frameTime + lastFrameDrawTime
 
-    aGame.timeSinceLastUpdate = millis() - aGame.timeOfLastUpdate
+  //update the displayed score
+  if (displayScore < game.score) {
+    displayScore += frameTime
 
-    if (aGame.softDropping) {
-      updateFreq = fastUpdateFreq
-    }
-
-    //update needed
-    if (aGame.timeSinceLastUpdate >= updateFreq) {
-      aGame.timeOfLastUpdate = millis()
-      aGame.update()
-    }
-
-    //key repeating
-    if (leftKeyHeld || rightKeyHeld) {
-      timeSinceKeyHold = millis() - timeOfKeyHold
-    }
-    if (timeSinceKeyHold >= keyRepeatFreq) {
-      aGame.move(heldKeyDirection)
-      timeOfKeyHold = millis()
-    }
-
-    drawBoard(aGame.board)
-    drawGuideLines(aGame.board)
-    drawHoldSlot(aGame.heldTetro)
-    drawQueue(aGame.tetroQueue)
+    if (displayScore > game.score) {
+      displayScore = game.score
+    } 
   }
-  else {
-    //draw end game screen
-    fill(255)
-    textSize(50)
-    text("Game Over", (width / 2) - 200, height / 2)
+
+  //if a movement input should be repeated
+  if (autoRepeatDirection != DIRECTION.NONE) {
+    const timeSinceKeyHeld = time - autoRepeatStartTime
+
+    if (timeSinceKeyHeld >= AUTO_REPEAT_DELAY) {
+      const timeSinceLastRepeat = time - lastAutoRepeatTime
+
+      if (timeSinceLastRepeat >= AUTO_REPEAT_FREQ) {
+        lastAutoRepeatTime = time
+
+        game.move(autoRepeatDirection)
+      }
+    }
+  }
+
+  switch(state) {
+    case STATE.MENU:
+      drawMenu()
+      break
+
+    case STATE.PLAYING:
+      //track the time passed
+      const timeSinceLastUpdate = lastFrameDrawTime - timeOfLastDrop
+    
+      //update the game when updateTime has passed since
+      //the last update
+      let fallSpeed = game.fallSpeed * 1000
+
+      if (game.softDropping) {
+        fallSpeed /= 20
+      }
+
+      if (game.gameOver) {
+        state = STATE.GAME_OVER
+      } else if (timeSinceLastUpdate >= fallSpeed) {
+        game.update()
+
+        //reset the timer
+        timeOfLastDrop = lastFrameDrawTime
+      }
+
+      
+    
+      drawBoard()
+      drawTetroOnBoard(game.activeTetro.grid,
+                game.activeTetro.tetro.colour,
+                game.activeTetro.pos.row,
+                game.activeTetro.pos.col)
+      drawGhostPiece()
+
+      drawNext()
+      drawHoldSlot()
+      drawGameInfo()
+      break
+
+    case STATE.PAUSED:
+      drawPauseMenu()
+      break
+
+    case STATE.GAME_OVER:
+      drawEndScreen()
+      break
   }
 }
 
 
-//handle key events
 function keyPressed() {
-  switch (keyCode) {
-    case 81: //q OR
-    case 90: //z
-      aGame.spin(false)
-      break;
+  //returning false causes the browser to ignore all default 
+  //behaviour for the key, so only set this to false if a key
+  //that should be ignored was pressed. Otherwise everything 
+  //including function keys will be ignored
+  let returnVal = true
+  
+  //stop keys being logged twice
+  if (returnVal) {
+    //for non-ascii keys
+    switch(keyCode) {
+      case ENTER:
+        if (state == STATE.MENU) {
+          state = STATE.PLAYING
+        }
+  
+        returnVal = false
+        break
+  
+      case ('A').charCodeAt(0):
+      case LEFT_ARROW:
+        game.move(DIRECTION.LEFT)
+        autoRepeatDirection = DIRECTION.LEFT
+        autoRepeatStartTime = millis()
+        returnVal = false
+        break
+  
+      case ('D').charCodeAt(0):
+      case RIGHT_ARROW:
+        game.move(DIRECTION.RIGHT)
+        autoRepeatDirection = DIRECTION.RIGHT
+        autoRepeatStartTime = millis()
+        returnVal = false
+        break
+  
+      case ('S').charCodeAt(0):
+      case DOWN_ARROW:
+        game.softDropping = true
+        returnVal = false
+        break
 
-    case 69: //e OR
-    case 88: //x
-      aGame.spin(true)
-      break
-
-    case 38: //up arrow
-      aGame.spin(true)
-      break
-
-    case 40: //down arrow OR
-    case 83: //s
-      aGame.softDropping = true
-      break
-
-    case 65: //a OR
-    case 37: //left arrow
-      aGame.move(directions.LEFT)
-
-      leftKeyHeld = true
-      heldKeyDirection = directions.LEFT
-      timeOfKeyHold = millis()
-      break
-
-    case 68: //d OR
-    case 39: //right arrow
-      aGame.move(directions.RIGHT)
-
-      rightKeyHeld = true
-      heldKeyDirection = directions.RIGHT
-      timeOfKeyHold = millis()
-      break
-
-    case 67: //c
-      aGame.hold()
-      break
-
-    case 32: //space
-      aGame.instantPlace()
-      break
-
-    //debug keys
-    case 89: //y
-      aGame.setActivePieceOnBoard(false)
-      break
-
-    case 85: //u
-      aGame.setActivePieceOnBoard(true)
-      break
-
-    case 77: //m
-      aGame.move(directions.DOWN)
-      break
-
-    case 73:
-      aGame.setActivePieceOnBoard(false)
-      aGame.activePiece.tetro = Tetromino.presets.iShape
-      aGame.setActivePieceOnBoard(true)
-      break
-
+      case ('E').charCodeAt(0):
+      case UP_ARROW:
+        game.spin(DIRECTION.CLOCKWISE)
+        returnVal = false
+        break
+      
+      case ('Q').charCodeAt(0):
+        game.spin(DIRECTION.ANTI_CLOCKWISE)
+        returnVal = false
+        break
+      
+      case ('C').charCodeAt(0):
+        game.holdTetro()
+        timeOfLastDrop = millis()
+        returnVal = false
+        break
+      
+      case ('P').charCodeAt(0):
+        if (state == STATE.PAUSED) {
+          state = STATE.PLAYING
+        }
+        else if (state == STATE.PLAYING) {
+          state = STATE.PAUSED
+        }
+        returnVal = false
+        break
+      
+      case ('R').charCodeAt(0):
+        if (state == STATE.PAUSED || state == STATE.GAME_OVER) {
+          newGame()
+        }
+        returnVal = false
+        break
+      
+      case (' ').charCodeAt(0):
+        game.hardDrop()
+        timeOfLastDrop = millis()
+        returnVal = false
+        break
+    }
+    
   }
+  return returnVal
 }
 
 
 function keyReleased() {
-  switch (keyCode) {
-    case 65: //a OR
-    case 37: //left arrow OR
-      leftKeyHeld = false
-      
-      //check if should revert to other
-      //direction or stop moving
-      if (rightKeyHeld) {
-        heldKeyDirection = directions.RIGHT
-      }
-      else {
-        heldKeyDirection = directions.NONE
-      }
+  switch(keyCode) {
+    case ('A').charCodeAt(0):
+    case ('D').charCodeAt(0):
+    case RIGHT_ARROW:
+    case LEFT_ARROW:
+      autoRepeatDirection = DIRECTION.NONE
       break
 
-    case 68: //d OR
-    case 39: //right arrow
-      rightKeyHeld = false
-      
-      //check if should revert to other
-      //direction or stop moving
-      if (leftKeyHeld) {
-        heldKeyDirection = directions.LEFT
-      }
-      else {
-        heldKeyDirection = directions.NONE
-      }
-      break
-
-    case 40: //down arrow OR
-    case 83: //s
-      //go back to normal update frequency
-      aGame.softDropping = false
-
-      //make it so there won't be another update
-      //instantly after letting go
-      aGame.timeOfLastUpdate = millis()
+    case ('S').charCodeAt(0):
+    case DOWN_ARROW:
+      game.softDropping = false
       break
   }
 }
 
 
-//checks if given x and y coordinates
-//are in the board, includes all 
-//edges
-function inBoardBoundaries(yPos, xPos) {
-  return (xPos >= 0) &&
-         (yPos >= 0) &&
-         (xPos < NUM_COLUMNS) &&
-         (yPos < NUM_ROWS)
+function newGame() {
+  game = new Game()
+  state = STATE.PLAYING
+  displayScore = 0
 }
 
 
-function drawBoard(aBoard) {
-  //draw the background
-  strokeWeight(1)
-  for (var y = SQUARE_SIZE * 2; y < HEIGHT; y += 3) {
-    stroke('#111')
-    line(0, y, WIDTH - 1, y)
-    stroke('#222')
-    line(0, y + 1, WIDTH - 1, y + 1)
-    line(0, y + 2, WIDTH - 1, y + 2)
-  }
+function drawBoard() {
+  background("#bbb")
 
-  // //DEBUG: draw the active piece's whole grid
-  // var thePiece = aGame.activePiece
-  // var theGrid = thePiece.tetro.grid
-  // for (var y = 0; y < theGrid.length; y++) {
-  //   for (var x = 0; x < theGrid[0].length; x++) {
-  //     var xLoc = thePiece.x + x
-  //     var yLoc = thePiece.y + y
-
-  //     xLoc *= SQUARE_SIZE
-  //     yLoc *= SQUARE_SIZE
-
-  //     fill('#ff00ff')
-  //     rect(xLoc, yLoc, SQUARE_SIZE, SQUARE_SIZE)
-  //   }
-  // }
-
-  //draw all non-empty squares
-  stroke(0, 0, 0) //black
-  for (var y = 2; y < NUM_ROWS; y++) {
-    for (var x = 0; x < NUM_COLUMNS; x++) {
-      var square = aBoard[y][x]
-
-      //don't draw if the value is zero,
-      //that's an empty space
-      if (square != 0) {
-        fill(colours[square])
-        //use this to draw rects instead of images
-        //rect(SQUARE_SIZE * x, SQUARE_SIZE * y, SQUARE_SIZE, SQUARE_SIZE) 
-        var squareImage = images[square - 1] //-1 because 0 is used for blank
-        image(
-          squareImage, 
-          x * SQUARE_SIZE, 
-          y * SQUARE_SIZE, 
-          squareImage.width * IMG_SCALE, 
-          squareImage.height * IMG_SCALE)
+  gridForEach(game.board, (cell, rowNum, colNum) => {
+    //don't draw the buffer zone
+    if (rowNum >= BUFFER_ZONE_HEIGHT) {
+      if (cell != 0) {
+        fill(Object.values(COLOUR)[cell])
+      } else {
+        fill(COLOUR.NIGHT)
       }
+      rect(LEFT_MARGIN + colNum * CELL_SIZE, (rowNum - BUFFER_ZONE_HEIGHT) * CELL_SIZE,
+           CELL_SIZE, CELL_SIZE)
     }
-  }
-
+  })
 }
 
 
-//draw the guidelines either side of
-//the active piece
-function drawGuideLines(theGame) {
-  //draw guide lines
-  stroke(75, 75, 75) //lightgray
-  var bounds = aGame.activePiece.tetro.bounds
-  
-  var leftX = (aGame.activePiece.x + bounds[0][1]) * SQUARE_SIZE
-  var rightX = (aGame.activePiece.x + bounds[1][1] + 1) * SQUARE_SIZE
-  line(leftX, SQUARE_SIZE * 2, leftX, height)
-  line(rightX, SQUARE_SIZE * 2, rightX, height)
-}
+function drawTetroOnBoard(grid, colour, rowPos, colPos) {
+  fill(colour)
 
-
-function drawHoldSlot(shapeInSlot) {
-  fill(255)
-  textSize(20)
-  text("Hold", SQUARE_SIZE * 11, 12.5 * SQUARE_SIZE)
-
-  fill('#555')
-  var scale = 0.6
-
-  rect(
-    SQUARE_SIZE * 11,
-    SQUARE_SIZE * 13,
-    SQUARE_SIZE * 4 * scale,
-    SQUARE_SIZE * 4 * scale
-  )
-  //only if there is a shape in hold
-  if (shapeInSlot != undefined) {
-    drawShape(
-      shapeInSlot,
-      scale,
-      SQUARE_SIZE * 11,
-      SQUARE_SIZE * 13
-  )
-  }
-}
-
-
-//NOT for drawing the active shape, that should be drawn
-//as part of the grid. This just draws a picture of a shape
-//at a given location and scale
-function drawShape(shape, scale, xPos, yPos) {
-  for (var y = 0; y < shape.grid.length; ++y) {
-    for (var x = 0; x < shape.grid[0].length; ++x) {
-      
-      if (shape.grid[y][x] != 0) {
-        var squareImage = images[shape.colour - 1]
-
-        image(
-              squareImage, 
-              xPos + (x * SQUARE_SIZE * scale), 
-              yPos + (y * SQUARE_SIZE * scale), 
-              SQUARE_SIZE * scale, 
-              SQUARE_SIZE * scale
-        )
-      }
+  gridForEach(grid, (cell, rowNum, colNum) => {
+    if(cell) {
+      rect(LEFT_MARGIN + (colPos + colNum) * CELL_SIZE, //x
+            (rowPos + rowNum - BUFFER_ZONE_HEIGHT) * CELL_SIZE, //y
+            CELL_SIZE, CELL_SIZE) //size
     }
+  })
+}
+
+
+function drawTetro(grid, colour, xPos, yPos) {
+  fill(colour)
+
+  gridForEach(grid, (cell, rowNum, colNum) => {
+    if (cell) {
+      rect(xPos + colNum * CELL_SIZE, yPos + rowNum * CELL_SIZE,
+           CELL_SIZE, CELL_SIZE)
+    }
+  })
+}
+
+
+function drawNext() {
+  textSize(32)
+  fill(0)
+  text("Next", 570, 50)
+
+  game.next.forEach((tetro, queuePos) => {
+    const grid = tetro.rotations[0]
+    const rowPos = 70 + (queuePos * 3) * CELL_SIZE
+    drawTetro(grid, tetro.colour, 570, rowPos)
+  })
+}
+
+
+function drawHoldSlot() {
+  const hold = game.holdSlot
+
+  textSize(32)
+  fill(0)
+  text("Hold", 80, 50)
+
+  if (hold) {
+    drawTetro(hold.rotations[0], hold.colour,
+              80, 70)
   }
 }
 
 
-function drawQueue(aQueue) {
-  var scale = 0.6
+function drawGhostPiece() {
+  const pos = game.activeTetro.pos
+  //concat the alpha value to the colour
+  const colour = game.activeTetro.tetro.colour.concat(40)
 
-  fill(255)
-  textSize(20)
-  text("Queue", SQUARE_SIZE * 11, 2.5 * SQUARE_SIZE)
-  //fill the first one in a lighter colour
-  fill ('#aaa')
-  for (var i = 0; i < aGame.queueSize; ++i) {
-    var xPos = (SQUARE_SIZE * 11),
-        yPos = (3 * SQUARE_SIZE) + (i*SQUARE_SIZE * 3)
-    //draw background
-    rect(
-      xPos,
-      yPos,
-      SQUARE_SIZE * 4 * scale,
-      SQUARE_SIZE * 4 * scale
-    )
-    drawShape(
-      aQueue.getNthElement(i),
-      0.6,
-      xPos,
-      yPos
-    )
-    fill('#555')
-  }
-
-  //drawShape(Tetromino.presets.leftStairShape, 0.7, 100, 100)
+  drawTetroOnBoard(game.activeTetro.grid, colour, 
+                   game.activeTetro.pos.row + game.ghostOffset,
+                   game.activeTetro.pos.col)
 }
 
 
-//debug function for drawing dots at board coordinates
-function drawDotAtPos(xPos, yPos) {
-  fill('#ff00ff')
-  ellipse(xPos * SQUARE_SIZE, yPos * SQUARE_SIZE, 5, 5)
+function drawMenu() {
+  background(COLOUR.NIGHT)
+
+  fill("#bbb")
+  textSize(64)
+  text("Webtris", 280, 100)
+
+  textSize(32)
+  text("Controls", 150, 220)
+
+  textSize(18)
+  text("Move tetro: A/D or LEFT/RIGHT arrows", 150, 260)
+  text("Spin tetro: Q/E or UP arrow", 150, 285)
+  text("Hold: C", 150, 310)
+  text("Instant drop: SPACE", 150, 335)
+  text("Pause/resume: P", 150, 360)
+
+  textSize(24)
+  text("Press ENTER to start", 270, 500)
+}
+
+
+function drawPauseMenu() {
+  fill(COLOUR.ORANGE)
+  rect(LEFT_MARGIN + CELL_SIZE, 3 * CELL_SIZE, 
+       (BOARD_WIDTH - 2) * CELL_SIZE, 5 * CELL_SIZE)
+
+  fill("#bbb")
+  textSize(32)
+  text("Paused", 335, 150)
+
+  textSize(24)
+  text("Press r to restart", 300, 200)
+}
+
+
+function drawEndScreen() {
+  fill(COLOUR.RED)
+  rect(LEFT_MARGIN + CELL_SIZE, 3 * CELL_SIZE, 
+       (BOARD_WIDTH - 2) * CELL_SIZE, 5 * CELL_SIZE)
+
+  fill("#bbb")
+  textSize(32)
+  text("Game Over", 305, 150)
+
+  textSize(24)
+  text("Press r to restart", 300, 200)
+}
+
+
+function drawGameInfo() {
+  const leftPos = 80
+  fill(0)
+  textSize(24)
+  text(`Score:\n   ${displayScore}`, leftPos, 200)
+
+  text(`Lines: ${game.stats.rowsCleared}`, leftPos, 350)
+  text(`Level: ${game.level}`, leftPos, 380)
+  text(`Tetrises: ${game.stats.tetrises}`, leftPos, 450)
 }
