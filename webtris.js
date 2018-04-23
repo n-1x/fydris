@@ -13,6 +13,18 @@ const AUTO_REPEAT_DELAY = 300 //tetris guideline
 const LEFT_MARGIN = 8 * CELL_SIZE
 const RIGHT_MARGIN = 8 * CELL_SIZE
 
+const KEY = {
+  S: ('S').charCodeAt(0),
+  A: ('A').charCodeAt(0),
+  D: ('D').charCodeAt(0),
+  Q: ('Q').charCodeAt(0),
+  E: ('E').charCodeAt(0),
+  R: ('R').charCodeAt(0),
+  C: ('C').charCodeAt(0),
+  P: ('P').charCodeAt(0),
+  SPACE: (' ').charCodeAt(0)
+}
+
 const COLOUR = {
   WHITE: [255, 255, 255],
   RED: [209, 41, 0],
@@ -210,7 +222,7 @@ class Game {
     this.holdSlot = null
     this.score = 0
     this.level = 1
-    this.fallSpeed = 1 //seconds per line
+    this.fallTime = 1 //seconds per line
     this.softDropping = false
 
     this.stats = {
@@ -257,7 +269,7 @@ class Game {
 
   calculateFallSpeed() {
     //algorithm from the tetris guideline
-    this.fallSpeed = Math.pow((0.8 - ((this.level - 1) * 0.007)), this.level - 1)
+    this.fallTime = Math.pow((0.8 - ((this.level - 1) * 0.007)), this.level - 1)
   }
 
 
@@ -462,16 +474,20 @@ class Game {
         break
     }
 
-    success = this.tetroFitsOnBoard(this.activeTetro.grid, rowNum, colNum)
-
+    //when moving down, always successful unless the piece is in
+    //the same place as its ghost
+    if (DIRECTION != DIRECTION.DOWN) {
+      success = this.tetroFitsOnBoard(this.activeTetro.grid, rowNum, colNum)
+      this.calculateGhostOffset()
+    }
+    else {
+      success = this.ghostOffset != 0
+    }
+    
     //actually move the piece if the move is allowed
     if (success) {
       this.activeTetro.pos.row = rowNum
       this.activeTetro.pos.col = colNum
-    }
-
-    if (DIRECTION != DIRECTION.DOWN) {
-      this.calculateGhostOffset()
     }
 
     return success
@@ -500,26 +516,25 @@ class Game {
   }
 }
 
+
+//auto pause if the page is not visibile
+document.addEventListener("visibilitychange", function() {
+  if (document.hidden && state == STATE.PLAYING) {
+    state = STATE.PAUSED
+  }
+});
+
 /*************************************************************** */
 
-//variables to keep track of the time and keep
-//the game updating on schedule
 let timeOfLastDrop = 0
 let lastFrameDrawTime = 0
-
 let state = STATE.MENU
 let autoRepeatDirection = DIRECTION.NONE
 let autoRepeatStartTime = 0
 let lastAutoRepeatTime = 0
-
-let game = new Game()
-
 let displayScore = 0
-
-
-function preload() {
-  
-}
+let time = 0
+let game = null
 
 
 function setup() {
@@ -528,13 +543,16 @@ function setup() {
   
   canvas.parent("game")
   timeOfLastDrop = millis()
+
+  game = new Game()
 }
 
 
 function draw() {
-  const time = millis()
+  time = Math.floor(millis())
   const frameTime = time - lastFrameDrawTime
-  lastFrameDrawTime = frameTime + lastFrameDrawTime
+
+  lastFrameDrawTime += frameTime
 
   //update the displayed score
   if (displayScore < game.score) {
@@ -545,59 +563,34 @@ function draw() {
     } 
   }
 
-  //if a movement input should be repeated
-  if (autoRepeatDirection != DIRECTION.NONE) {
-    const timeSinceKeyHeld = time - autoRepeatStartTime
-
-    if (timeSinceKeyHeld >= AUTO_REPEAT_DELAY) {
-      const timeSinceLastRepeat = time - lastAutoRepeatTime
-
-      if (timeSinceLastRepeat >= AUTO_REPEAT_FREQ) {
-        lastAutoRepeatTime = time
-
-        game.move(autoRepeatDirection)
-      }
-    }
-  }
-
   switch(state) {
     case STATE.MENU:
       drawMenu()
       break
 
     case STATE.PLAYING:
-      //track the time passed
-      const timeSinceLastUpdate = lastFrameDrawTime - timeOfLastDrop
-    
-      //update the game when updateTime has passed since
-      //the last update
-      let fallSpeed = game.fallSpeed * 1000
-
-      if (game.softDropping) {
-        fallSpeed /= 20
-      }
-
-      if (game.gameOver) {
-        state = STATE.GAME_OVER
-      } else if (timeSinceLastUpdate >= fallSpeed) {
-        game.fall()
-
-        //reset the timer
-        timeOfLastDrop = lastFrameDrawTime
-      }
-
+        autoRepeat(time)
+        //track the time passed
+        const timeSinceLastUpdate = lastFrameDrawTime - timeOfLastDrop
       
-    
-      drawBoard()
-      drawTetroOnBoard(game.activeTetro.grid,
-                game.activeTetro.tetro.colour,
-                game.activeTetro.pos.row,
-                game.activeTetro.pos.col)
-      drawGhostPiece()
+        //update the game when updateTime has passed since
+        //the last update
+        let fallTime = game.fallSpeed * 1000
+  
+        //fall speed should be 20x faster when soft dropping
+        if (game.softDropping) {
+          fallTime /= 20
+        }
+  
+        if (game.gameOver) {
+          state = STATE.GAME_OVER
+        } else if (timeSinceLastUpdate >= fallTime) {
+          game.fall()
 
-      drawNext()
-      drawHoldSlot()
-      drawGameInfo()
+          timeOfLastDrop = lastFrameDrawTime
+        }
+  
+        drawGame()
       break
 
     case STATE.PAUSED:
@@ -612,105 +605,121 @@ function draw() {
 
 
 function keyPressed() {
-  //returning false causes the browser to ignore all default 
-  //behaviour for the key, so only set this to false if a key
-  //that should be ignored was pressed. Otherwise everything 
-  //including function keys will be ignored
-  let returnVal = true
+  //array of keys to ignore default behaviour
+  const annoyingKeys = [KEY.SPACE, DOWN_ARROW]
+  //if returnval is false, browser ignores default behaviour
+  let returnVal = !annoyingKeys.includes(keyCode)
   
   //stop keys being logged twice
-  if (returnVal) {
+  if (state == STATE.PLAYING) {
     //for non-ascii keys
-    switch(keyCode) {
-      case ENTER:
-        if (state == STATE.MENU) {
-          state = STATE.PLAYING
-        }
-  
-        returnVal = false
-        break
-  
-      case ('A').charCodeAt(0):
+    switch(keyCode) { 
+      case KEY.A:
       case LEFT_ARROW:
         game.move(DIRECTION.LEFT)
         autoRepeatDirection = DIRECTION.LEFT
-        autoRepeatStartTime = millis()
-        returnVal = false
+
+        autoRepeatStartTime = time
+        timeOfLastDrop = time
         break
   
-      case ('D').charCodeAt(0):
+      case KEY.D:
       case RIGHT_ARROW:
         game.move(DIRECTION.RIGHT)
         autoRepeatDirection = DIRECTION.RIGHT
-        autoRepeatStartTime = millis()
-        returnVal = false
+        autoRepeatStartTime = time
         break
   
-      case ('S').charCodeAt(0):
+      case KEY.S:
       case DOWN_ARROW:
         game.softDropping = true
-        returnVal = false
         break
 
-      case ('E').charCodeAt(0):
+      case KEY.E:
       case UP_ARROW:
         game.spin(DIRECTION.CLOCKWISE)
-        returnVal = false
+        timeOfLastDrop = time
         break
       
-      case ('Q').charCodeAt(0):
+      case KEY.Q:
         game.spin(DIRECTION.ANTI_CLOCKWISE)
-        returnVal = false
+        timeOfLastDrop = time
         break
       
-      case ('C').charCodeAt(0):
+      case KEY.C:
         game.holdTetro()
-        timeOfLastDrop = millis()
-        returnVal = false
+        timeOfLastDrop = time
         break
       
-      case ('P').charCodeAt(0):
-        if (state == STATE.PAUSED) {
-          state = STATE.PLAYING
-        }
-        else if (state == STATE.PLAYING) {
-          state = STATE.PAUSED
-        }
-        returnVal = false
+      case KEY.P:
+        state = STATE.PAUSED
         break
       
-      case ('R').charCodeAt(0):
-        if (state == STATE.PAUSED || state == STATE.GAME_OVER) {
-          newGame()
-        }
-        returnVal = false
-        break
-      
-      case (' ').charCodeAt(0):
+      case KEY.SPACE:
         game.hardDrop()
-        timeOfLastDrop = millis()
-        returnVal = false
+        timeOfLastDrop = time
         break
     }
-    
+  }
+  else if (state == STATE.MENU) {
+    switch (keyCode) {
+      case ENTER:
+        state = STATE.PLAYING
+        break
+    }
+  }
+  else if (state == STATE.PAUSED) {
+    switch (keyCode) {
+      case KEY.P:
+        state = STATE.PLAYING
+        break
+
+      case KEY.R:
+        newGame()
+        break
+    }
+  }
+  else if (state == STATE.GAME_OVER) {
+    switch(keyCode) {
+      case KEY.R:
+        newGame()
+        break
+    }
   }
   return returnVal
 }
 
 
 function keyReleased() {
-  switch(keyCode) {
-    case ('A').charCodeAt(0):
-    case ('D').charCodeAt(0):
-    case RIGHT_ARROW:
-    case LEFT_ARROW:
-      autoRepeatDirection = DIRECTION.NONE
-      break
+  const autoRepeatKeys = [KEY.A, KEY.D, LEFT_ARROW, RIGHT_ARROW]
 
-    case ('S').charCodeAt(0):
+  if (autoRepeatKeys.includes(keyCode)) {
+    autoRepeatDirection = DIRECTION.NONE
+  }
+
+  switch(keyCode) {
+    case KEY.S:
     case DOWN_ARROW:
       game.softDropping = false
       break
+  }
+}
+
+
+function autoRepeat(time) {
+  //if a movement input should be repeated
+  if (autoRepeatDirection != DIRECTION.NONE) {
+    const timeSinceKeyHeld = time - autoRepeatStartTime
+
+    if (timeSinceKeyHeld >= AUTO_REPEAT_DELAY) {
+      const timeSinceLastRepeat = time - lastAutoRepeatTime
+
+      if (timeSinceLastRepeat >= AUTO_REPEAT_FREQ) {
+        lastAutoRepeatTime = time
+
+        game.move(autoRepeatDirection)
+      }
+    }
   }
 }
 
@@ -722,21 +731,37 @@ function newGame() {
 }
 
 
+function drawGame() {
+  drawBoard()
+  drawTetroOnBoard(game.activeTetro.grid,
+            game.activeTetro.tetro.colour,
+            game.activeTetro.pos.row,
+            game.activeTetro.pos.col)
+  drawGhostPiece()
+
+  drawNext()
+  drawHoldSlot()
+  drawGameInfo()
+}
+
+
 function drawBoard() {
   background("#bbb")
 
-  gridForEach(game.board, (cell, rowNum, colNum) => {
-    //don't draw the buffer zone
-    if (rowNum >= BUFFER_ZONE_HEIGHT) {
+  for(let rowNum = BUFFER_ZONE_HEIGHT; rowNum < BOARD_HEIGHT; ++rowNum) {
+    const row = game.board[rowNum]
+
+    row.forEach((cell, colNum) => {
       if (cell != 0) {
         fill(Object.values(COLOUR)[cell])
-      } else {
+      }
+      else {
         fill(COLOUR.NIGHT)
       }
       rect(LEFT_MARGIN + colNum * CELL_SIZE, (rowNum - BUFFER_ZONE_HEIGHT) * CELL_SIZE,
            CELL_SIZE, CELL_SIZE)
-    }
-  })
+    })
+  }
 }
 
 
@@ -835,7 +860,7 @@ function drawPauseMenu() {
   text("Paused", 335, 150)
 
   textSize(24)
-  text("Press r to restart", 300, 200)
+  text("Press R to restart", 300, 200)
 }
 
 
@@ -849,7 +874,7 @@ function drawEndScreen() {
   text("Game Over", 305, 150)
 
   textSize(24)
-  text("Press r to restart", 300, 200)
+  text("Press R to restart", 300, 200)
 }
 
 
