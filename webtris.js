@@ -327,7 +327,7 @@ class Game {
         const row = this.board[r + rowPos]
         
         //if row is undefined then the cell won't be checked
-        cellFree = row && row[c + colPos] == 0
+        cellFree = row && row[c + colPos] === 0
       }
   
       return !cellFree
@@ -476,18 +476,23 @@ class Game {
 
     //when moving down, always successful unless the piece is in
     //the same place as its ghost
-    if (DIRECTION != DIRECTION.DOWN) {
+    if (direction != DIRECTION.DOWN) {
       success = this.tetroFitsOnBoard(this.activeTetro.grid, rowNum, colNum)
-      this.calculateGhostOffset()
     }
     else {
-      success = this.ghostOffset != 0
+      if (this.ghostOffset != 0) {
+        success = true
+
+        //when moving down, the ghost offset just needs to decrease by 1
+        --this.ghostOffset
+      }
     }
     
     //actually move the piece if the move is allowed
     if (success) {
       this.activeTetro.pos.row = rowNum
       this.activeTetro.pos.col = colNum
+      this.calculateGhostOffset()
     }
 
     return success
@@ -575,7 +580,7 @@ function draw() {
       
         //update the game when updateTime has passed since
         //the last update
-        let fallTime = game.fallSpeed * 1000
+        let fallTime = game.fallTime * 1000
   
         //fall speed should be 20x faster when soft dropping
         if (game.softDropping) {
@@ -618,9 +623,7 @@ function keyPressed() {
       case LEFT_ARROW:
         game.move(DIRECTION.LEFT)
         autoRepeatDirection = DIRECTION.LEFT
-
         autoRepeatStartTime = time
-        timeOfLastDrop = time
         break
   
       case KEY.D:
@@ -638,12 +641,10 @@ function keyPressed() {
       case KEY.E:
       case UP_ARROW:
         game.spin(DIRECTION.CLOCKWISE)
-        timeOfLastDrop = time
         break
       
       case KEY.Q:
         game.spin(DIRECTION.ANTI_CLOCKWISE)
-        timeOfLastDrop = time
         break
       
       case KEY.C:
