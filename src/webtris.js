@@ -40,6 +40,7 @@ let lastAutoRepeatTime = 0
 let lockdownTimer = 0
 let lockdownCounter = 0
 let lockdownStarted = false
+let lockdownRow = 0
 
 
 function setup() {
@@ -242,12 +243,17 @@ function keyReleased() {
 function checkLockdown() {
   if (lockdownStarted) {
     lockdownTimer = 0
-    ++lockdownCounter
+
+    //only reset the counter if it's the new lowest row position
+    if (game.activeTetro.pos.row > lockdownRow) {
+      lockdownCounter = 0
+    }
   }
   else if (game.isPieceOnSurface()) {
     lockdownStarted = true
     lockdownCounter = 0
     lockdownTimer = 0
+    lockdownRow = game.activeTetro.pos.row
   }
 }
 
