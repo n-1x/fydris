@@ -86,7 +86,6 @@ function draw() {
         lockdownTimer += frameTime
         
         if (!game.isPieceOnSurface()) {
-          console.log("lockdown end")
           lockdownStarted = false
         }
       }
@@ -245,7 +244,6 @@ function checkLockdown() {
     ++lockdownCounter
   }
   else if (game.isPieceOnSurface()) {
-    console.log("lockdown start")
     lockdownStarted = true
     lockdownCounter = 0
     lockdownTimer = 0
@@ -324,14 +322,15 @@ function drawBoard() {
 }
 
 
-function drawTetroOnBoard(grid, colour, rowPos, colPos) {
+function drawTetroOnBoard(tetroGrid, colour, rowPos, colPos) {
   fill(colour)
 
-  gridForEach(grid, (cell, rowNum, colNum) => {
+  gridForEach(tetroGrid, (cell, rowNum, colNum) => {
     if(cell) {
       rect(LEFT_MARGIN + (colPos + colNum) * CELL_SIZE, //x
             (rowPos + rowNum - BUFFER_ZONE_HEIGHT) * CELL_SIZE, //y
             CELL_SIZE, CELL_SIZE) //size
+      
     }
   })
 }

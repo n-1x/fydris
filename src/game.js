@@ -218,9 +218,10 @@ class Game {
 
 
   spin(direction) {
-    const pos = this.activeTetro.pos
-    let spinPossible = true
-    let newOrientation = this.activeTetro.orientation
+    const thisTetro = this.activeTetro
+    const pos = thisTetro.pos
+    let spinPossible = false
+    let newOrientation = thisTetro.orientation
 
     if (direction === DIRECTION.CLOCKWISE) {
       ++newOrientation
@@ -236,14 +237,42 @@ class Game {
     else if (newOrientation> 3) {
       newOrientation = 0
     }
-
+    
     const spunGrid = this.activeTetro.tetro.rotations[newOrientation]
-
+    
+    //try rotating around point 1
     spinPossible = this.tetroFitsOnBoard(spunGrid, pos.row, pos.col)
-
     if (spinPossible) {
       this.activeTetro.orientation = newOrientation
       this.activeTetro.grid = spunGrid
+    } 
+    else { //attempt rotations around points 2-5
+      const oldPoints = thisTetro.tetro.rotations[thisTetro.orientation].points
+      const newPoints = thisTetro.tetro.rotations[newOrientation].points
+      let pointCounter = 0 //index 0 is point 2
+      let fitFound = false
+
+      //for each of the rotation points, until a fit is found
+      while (!fitFound && pointCounter < 4) {
+        const oldPoint = oldPoints[pointCounter]
+        const newPoint = newPoints[pointCounter]
+        const rowDiff = oldPoint[0] - newPoint[0]
+        const colDiff = oldPoint[1] - newPoint[1]
+
+        fitFound = this.tetroFitsOnBoard(spunGrid, pos.row + rowDiff, 
+                                                   pos.col + colDiff)
+
+        if (fitFound) {
+          //apply the translation
+          thisTetro.pos.row += rowDiff
+          thisTetro.pos.col += colDiff
+
+          //switch to the spunGrid
+          thisTetro.orientation = newOrientation
+          thisTetro.grid = spunGrid
+        }
+        ++pointCounter
+      }
     }
 
     this.calculateGhostOffset()

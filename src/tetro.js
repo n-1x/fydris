@@ -1,7 +1,7 @@
 import { BOARD_WIDTH, BOARD_HEIGHT, COLOUR, DIRECTION } from './constants'
 
 class Tetro {
-  constructor(colour, grid) {
+  constructor(colour, grid, srsObj) {
     this.rotations = []
     this.colour = colour
     
@@ -9,6 +9,7 @@ class Tetro {
     this.rotations[0] = grid
 
     //private function for generating the rotations of the tetro
+    //around srs point 1
     const rotateGrid = function(grid, direction) {
       const newGrid = [] //will hold all the new rows
       const oldWidth = grid[0].length
@@ -36,6 +37,11 @@ class Tetro {
     for(let i = 0; i < 3; ++i) {
       this.rotations.push(rotateGrid(this.rotations[i], DIRECTION.CLOCKWISE))
     }
+
+    this.rotations[0].points = srsObj.NORTH
+    this.rotations[1].points = srsObj.EAST
+    this.rotations[2].points = srsObj.SOUTH
+    this.rotations[3].points = srsObj.WEST
   }
 }
 
@@ -84,46 +90,251 @@ export class TetroBag {
 }
 
 
+class SRSPoint {
+  constructor(rowOffset, colOffset) {
+    this.row = rowOffset
+    this.col = colOffset
+  }
+}
+
+
 export const TETRO = {
   iShape: new Tetro(COLOUR.LIGHT_BLUE, [
     [0, 0, 0, 0],
     [1, 1, 1, 1],
     [0, 0, 0, 0],
     [0, 0, 0, 0]
-  ]),
+  ],
+  { //Offsets for SRS Points
+    NORTH: [
+      [1, 0], //point 2
+      [1, 3], //point 3
+      [1, 0], //point 4
+      [1, 3]  //point 5
+    ],
+
+    SOUTH: [
+      [1, 3],
+      [1, 0],
+      [2, 3],
+      [2, 0]
+    ],
+
+    EAST: [
+      [1, 2],
+      [1, 2],
+      [0, 2],
+      [3, 2]
+    ],
+
+    WEST: [
+      [1, 1],
+      [1, 1],
+      [3, 1],
+      [0, 1]
+    ]
+  }),
 
   jShape: new Tetro(COLOUR.BLUE, [
     [1, 0, 0],
     [1, 1, 1],
     [0, 0, 0]
-  ]),
+  ], {
+    NORTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    EAST: [
+      [1, 2],
+      [2, 2],
+      [-1, 1],
+      [-1, -2]
+    ],
+
+    SOUTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    WEST: [
+      [0, 1],
+      [2, 0],
+      [-1, 1],
+      [-1, 0]
+    ]
+  }),
 
   lShape: new Tetro(COLOUR.ORANGE, [
     [0, 0, 1],
     [1, 1, 1],
     [0, 0, 0]
-  ]),
+  ], {
+    NORTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    EAST: [
+      [1, 2],
+      [2, 2],
+      [-1, 1],
+      [-1, 2]
+    ],
+
+    SOUTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    WEST: [
+      [1, 0],
+      [2, 0],
+      [-1, 1],
+      [-1, 0]
+    ]
+  }),
 
   oShape: new Tetro(COLOUR.YELLOW, [
     [1, 1],
     [1, 1]
-  ]),
+  ], {
+    NORTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    EAST: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    SOUTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    WEST: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ]
+  }),
 
   sShape: new Tetro(COLOUR.GREEN, [
     [0, 1, 1],
     [1, 1, 0],
     [0, 0, 0]
-  ]),
+  ], {
+    NORTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    EAST: [
+      [1, 2],
+      [2, 2],
+      [-1, 1],
+      [-1, 2]
+    ],
+
+    SOUTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    WEST: [
+      [1, 0],
+      [2, 0],
+      [-1, 1],
+      [-1, 0]
+    ]
+  }),
 
   tShape: new Tetro(COLOUR.PURPLE, [
     [0, 1, 0],
     [1, 1, 1],
     [0, 0, 0]
-  ]),
+  ], {
+    NORTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    EAST: [
+      [1, 2],
+      [2, 2],
+      [-1, 1],
+      [-1, 2]
+    ],
+
+    SOUTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    WEST: [
+      [1, 0],
+      [2, 0],
+      [-1, 1],
+      [-1, 0]
+    ]
+  }),
 
   zShape: new Tetro(COLOUR.RED, [
     [1, 1, 0],
     [0, 1, 1],
     [0, 0, 0]
-  ])
+  ], {
+    NORTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    EAST: [
+      [1, 2],
+      [2, 2],
+      [-1, 1],
+      [-1, 2]
+    ],
+
+    SOUTH: [
+      [1, 1],
+      [1, 1],
+      [1, 1],
+      [1, 1]
+    ],
+
+    WEST: [
+      [1, 0],
+      [2, 0],
+      [-1, 1],
+      [-1, 0]
+    ]
+  })
 }
