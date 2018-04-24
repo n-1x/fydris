@@ -86,7 +86,9 @@ function draw() {
       if (lockdownStarted) {
         lockdownTimer += frameTime
         
-        if (!game.isPieceOnSurface()) {
+        console.log("Pos: " + game.activeTetro.pos.row)
+
+        if (!game.isPieceOnSurface() && game.activeTetro.pos.row > lockdownRow) {
           lockdownStarted = false
         }
       }
@@ -243,17 +245,14 @@ function keyReleased() {
 function checkLockdown() {
   if (lockdownStarted) {
     lockdownTimer = 0
-
-    //only reset the counter if it's the new lowest row position
-    if (game.activeTetro.pos.row > lockdownRow) {
-      lockdownCounter = 0
-    }
+    ++lockdownCounter
   }
   else if (game.isPieceOnSurface()) {
     lockdownStarted = true
     lockdownCounter = 0
     lockdownTimer = 0
     lockdownRow = game.activeTetro.pos.row
+    console.log("Lockdown start row: " + lockdownRow)
   }
 }
 
