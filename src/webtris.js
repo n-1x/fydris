@@ -155,6 +155,7 @@ function keyPressed() {
         break
 
       case KEY.E:
+      case KEY.W:
       case UP_ARROW:
         game.spin(DIRECTION.CLOCKWISE)
 
