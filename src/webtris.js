@@ -7,6 +7,7 @@ import {
   DIRECTION, STATE, KEY, COLOUR
 } from './constants'
 
+
 //auto pause if the page is not visibile
 document.addEventListener("visibilitychange", function() {
   if (document.hidden && state == STATE.PLAYING) {
@@ -64,7 +65,7 @@ function draw() {
 
     if (displayScore > game.score) {
       displayScore = game.score
-    } 
+    }
   }
 
   switch(state) {
@@ -79,12 +80,13 @@ function draw() {
     
       //the amount of time until the fall. Should be 20x quicker
       //if game.softDropping
-      let fallTime = game.fallTime * 1000 / (game.softDropping ? 20 : 1) 
+      let fallTime = game.fallTime * 1000 / (game.softDropping ? 20 : 1)
 
       if (lockdownStarted) {
         lockdownTimer += frameTime
         
         if (!game.isPieceOnSurface()) {
+          console.log("lockdown end")
           lockdownStarted = false
         }
       }
@@ -102,13 +104,7 @@ function draw() {
       }
       else if (timeSinceLastFall >= fallTime) { //fall timer
         game.fall()
-
-        if (game.isPieceOnSurface()) {
-          lockdownStarted = true
-          lockdownCounter = 0
-          lockdownTimer = 0
-        }
-
+        checkLockdown()
         lastFallTime = lastFrameDrawTime
       }
 
@@ -142,9 +138,7 @@ function keyPressed() {
 
         autoRepeats.unshift(DIRECTION.LEFT)
         autoRepeatStartTime = currentTime
-
-        lockdownTimer = 0
-        ++lockdownCounter
+        checkLockdown()
         break
   
       case KEY.D:
@@ -153,9 +147,7 @@ function keyPressed() {
 
         autoRepeats.unshift(DIRECTION.RIGHT)
         autoRepeatStartTime = currentTime
-
-        lockdownTimer = 0
-        ++lockdownCounter
+        checkLockdown()
         break
   
       case KEY.S:
@@ -249,6 +241,20 @@ function keyReleased() {
     case RIGHT_ARROW:
       autoRepeatEnd(DIRECTION.RIGHT)
       break
+  }
+}
+
+
+function checkLockdown() {
+  if (lockdownStarted) {
+    lockdownTimer = 0
+    ++lockdownCounter
+  }
+  else if (game.isPieceOnSurface()) {
+    console.log("lockdown start")
+    lockdownStarted = true
+    lockdownCounter = 0
+    lockdownTimer = 0
   }
 }
 
