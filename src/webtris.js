@@ -86,8 +86,6 @@ function draw() {
       if (lockdownStarted) {
         lockdownTimer += frameTime
         
-        console.log("Pos: " + game.activeTetro.pos.row)
-
         if (!game.isPieceOnSurface() && game.activeTetro.pos.row > lockdownRow) {
           lockdownStarted = false
         }
@@ -252,7 +250,6 @@ function checkLockdown() {
     lockdownCounter = 0
     lockdownTimer = 0
     lockdownRow = game.activeTetro.pos.row
-    console.log("Lockdown start row: " + lockdownRow)
   }
 }
 
