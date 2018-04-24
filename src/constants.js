@@ -10,6 +10,9 @@ export const FIXED_GOAL = 10 //lines per level
 export const AUTO_REPEAT_FREQ = 50 //tetris guideline
 export const AUTO_REPEAT_DELAY = 300 //tetris guideline
 
+export const LOCKDOWN_TIME = 500 //tetris guideline for ext. lockdown
+export const LOCKDOWN_MOVE_LIMIT = 15 //tetris guideline for ext. lockdown
+
 export const LEFT_MARGIN = 8 * CELL_SIZE
 export const RIGHT_MARGIN = 8 * CELL_SIZE
 

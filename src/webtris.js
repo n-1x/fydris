@@ -2,8 +2,9 @@ import { gridForEach } from './helpers'
 import Game from './game'
 import {
   BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE, BUFFER_ZONE_HEIGHT, 
-  NEXT_SIZE, AUTO_REPEAT_DELAY, AUTO_REPEAT_FREQ, 
-  LEFT_MARGIN, RIGHT_MARGIN, DIRECTION, STATE, KEY, COLOUR
+  NEXT_SIZE, AUTO_REPEAT_DELAY, AUTO_REPEAT_FREQ, LEFT_MARGIN,
+  RIGHT_MARGIN, LOCKDOWN_TIME, LOCKDOWN_MOVE_LIMIT,
+  DIRECTION, STATE, KEY, COLOUR
 } from './constants'
 
 //auto pause if the page is not visibile
@@ -13,15 +14,20 @@ document.addEventListener("visibilitychange", function() {
   }
 });
 
-let timeOfLastDrop = 0
+let lastFallTime = 0
 let lastFrameDrawTime = 0
 let state = STATE.MENU
-let autoRepeatDirection = DIRECTION.NONE
+let displayScore = 0
+let currentTime = 0
+let game = null
+
+const autoRepeats = []
 let autoRepeatStartTime = 0
 let lastAutoRepeatTime = 0
-let displayScore = 0
-let time = 0
-let game = null
+
+let lockdownTimer = 0
+let lockdownCounter = 0
+let lockdownStarted = false
 
 
 function setup() {
@@ -29,15 +35,15 @@ function setup() {
                               CELL_SIZE * (BOARD_HEIGHT - BUFFER_ZONE_HEIGHT ))
   
   canvas.parent("game")
-  timeOfLastDrop = millis()
+  lastFallTime = millis()
 
   game = new Game()
 }
 
 
 function draw() {
-  time = Math.floor(millis())
-  const frameTime = time - lastFrameDrawTime
+  currentTime = Math.floor(millis())
+  const frameTime = currentTime - lastFrameDrawTime
 
   lastFrameDrawTime += frameTime
 
@@ -56,28 +62,46 @@ function draw() {
       break
 
     case STATE.PLAYING:
-        autoRepeat(time)
-        //track the time passed
-        const timeSinceLastUpdate = lastFrameDrawTime - timeOfLastDrop
-      
-        //update the game when updateTime has passed since
-        //the last update
-        let fallTime = game.fallTime * 1000
-  
-        //fall speed should be 20x faster when soft dropping
-        if (game.softDropping) {
-          fallTime /= 20
-        }
-  
-        if (game.gameOver) {
-          state = STATE.GAME_OVER
-        } else if (timeSinceLastUpdate >= fallTime) {
-          game.fall()
+      autoRepeat(currentTime)
+      //track the time passed
+      const timeSinceLastFall = lastFrameDrawTime - lastFallTime
+    
+      //the amount of time until the fall. Should be 20x quicker
+      //if game.softDropping
+      let fallTime = game.fallTime * 1000 / (game.softDropping ? 20 : 1) 
 
-          timeOfLastDrop = lastFrameDrawTime
+      if (lockdownStarted) {
+        lockdownTimer += frameTime
+        
+        if (!game.pieceTouchingSurface()) {
+          lockdownStarted = false
         }
-  
-        drawGame()
+      }
+
+      if (game.gameOver) {
+        state = STATE.GAME_OVER
+      }
+      else if (lockdownStarted) { //lockdown has higher priority than fall timer
+        if (lockdownTimer >= LOCKDOWN_TIME || 
+            lockdownCounter >= LOCKDOWN_MOVE_LIMIT) {
+          game.fall()
+          lockdownStarted = false
+          lastFallTime = lastFrameDrawTime
+        }
+      }
+      else if (timeSinceLastFall >= fallTime) { //fall timer
+        game.fall()
+
+        if (game.pieceTouchingSurface()) {
+          lockdownStarted = true
+          lockdownCounter = 0
+          lockdownTimer = 0
+        }
+
+        lastFallTime = lastFrameDrawTime
+      }
+
+      drawGame()
       break
 
     case STATE.PAUSED:
@@ -93,8 +117,8 @@ function draw() {
 
 function keyPressed() {
   //array of keys to ignore default behaviour
-  const annoyingKeys = [KEY.SPACE, DOWN_ARROW]
-  //if returnval is false, browser ignores default behaviour
+  const annoyingKeys = [KEY.SPACE, UP_ARROW, DOWN_ARROW]
+  //if returnval is false, browser ignores default behaviour like scrolling
   let returnVal = !annoyingKeys.includes(keyCode)
   
   //stop keys being logged twice
@@ -104,15 +128,23 @@ function keyPressed() {
       case KEY.A:
       case LEFT_ARROW:
         game.move(DIRECTION.LEFT)
-        autoRepeatDirection = DIRECTION.LEFT
-        autoRepeatStartTime = time
+
+        autoRepeats.push(DIRECTION.LEFT)
+        autoRepeatStartTime = currentTime
+
+        lockdownTimer = 0
+        ++lockdownCounter
         break
   
       case KEY.D:
       case RIGHT_ARROW:
         game.move(DIRECTION.RIGHT)
-        autoRepeatDirection = DIRECTION.RIGHT
-        autoRepeatStartTime = time
+
+        autoRepeats.push(DIRECTION.RIGHT)
+        autoRepeatStartTime = currentTime
+
+        lockdownTimer = 0
+        ++lockdownCounter
         break
   
       case KEY.S:
@@ -123,15 +155,24 @@ function keyPressed() {
       case KEY.E:
       case UP_ARROW:
         game.spin(DIRECTION.CLOCKWISE)
+
+        lockdownTimer = 0
+        ++lockdownCounter
         break
       
       case KEY.Q:
         game.spin(DIRECTION.ANTI_CLOCKWISE)
+
+        lockdownTimer = 0
+        ++lockdownCounter
         break
       
       case KEY.C:
-        game.holdTetro()
-        timeOfLastDrop = time
+        const holdWorked = game.holdTetro()
+        
+        if (holdWorked) {
+          lastFallTime = currentTime
+        }
         break
       
       case KEY.P:
@@ -140,7 +181,8 @@ function keyPressed() {
       
       case KEY.SPACE:
         game.hardDrop()
-        timeOfLastDrop = time
+        lastFallTime = currentTime
+        lockdownStarted = false
         break
     }
   }
@@ -169,6 +211,7 @@ function keyPressed() {
         break
     }
   }
+
   return returnVal
 }
 
@@ -176,22 +219,29 @@ function keyPressed() {
 function keyReleased() {
   const autoRepeatKeys = [KEY.A, KEY.D, LEFT_ARROW, RIGHT_ARROW]
 
-  if (autoRepeatKeys.includes(keyCode)) {
-    autoRepeatDirection = DIRECTION.NONE
-  }
-
   switch(keyCode) {
+    case KEY.A:
+    case LEFT_ARROW:
+      autoRepeatEnd(DIRECTION.LEFT)
+      break
+
     case KEY.S:
     case DOWN_ARROW:
       game.softDropping = false
+      break
+
+    case KEY.D:
+    case RIGHT_ARROW:
+      autoRepeatEnd(DIRECTION.RIGHT)
       break
   }
 }
 
 
 function autoRepeat(time) {
+  const direction = autoRepeats[autoRepeats.length - 1]
   //if a movement input should be repeated
-  if (autoRepeatDirection != DIRECTION.NONE) {
+  if (direction) {
     const timeSinceKeyHeld = time - autoRepeatStartTime
 
     if (timeSinceKeyHeld >= AUTO_REPEAT_DELAY) {
@@ -200,11 +250,22 @@ function autoRepeat(time) {
       if (timeSinceLastRepeat >= AUTO_REPEAT_FREQ) {
         lastAutoRepeatTime = time
 
-        game.move(autoRepeatDirection)
+        game.move(direction)
       }
     }
   }
 }
+
+
+function autoRepeatEnd(direction) {
+  autoRepeats.splice(autoRepeats.lastIndexOf(direction), 1)
+  
+  if (autoRepeats.length != 0) {
+    game.move(autoRepeats[autoRepeats.length - 1])
+  }
+
+  autoRepeatStartTime = currentTime
+} 
 
 
 function newGame() {
@@ -366,8 +427,9 @@ function drawGameInfo() {
   fill(0)
   textSize(24)
   text(`Score:\n   ${displayScore}`, leftPos, 200)
+  text(`Level: ${game.level}`, leftPos, 260)
+  text(`Goal: ${10 - game.stats.rowsCleared % 10}`, leftPos, 290)
 
-  text(`Lines: ${game.stats.rowsCleared}`, leftPos, 350)
-  text(`Level: ${game.level}`, leftPos, 380)
-  text(`Tetrises: ${game.stats.tetrises}`, leftPos, 450)
+  text(`Lines: ${game.stats.rowsCleared}`, leftPos, 400)
+  text(`Tetrises: ${game.stats.tetrises}`, leftPos, 430)
 }

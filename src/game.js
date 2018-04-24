@@ -25,35 +25,35 @@ class Game {
     this.initNext()
     this.nextTetro()
   }
-
-
-  fall() {
-    if (!this.move(DIRECTION.DOWN)) {
-      this.finishTurn()
-    }
-  }
   
   
   initBoard() {
     this.board = []
-
+    
     //fill the board with height arrays of length width
     //all filled with zeroes
     for(let y = 0; y < BOARD_HEIGHT; ++y) {
       const row = []
-
+      
       for(let x = 0; x < BOARD_WIDTH; ++x) {
         row.push(0)
       }
-
+      
       this.board.push(row)
     }
   }
-
+  
 
   initNext() {
     for(let i = 0; i < NEXT_SIZE; ++i) {
       this.next.push(this.tetroBag.take())
+    }
+  }
+  
+  
+  fall() {
+    if (!this.move(DIRECTION.DOWN)) {
+      this.finishTurn()
     }
   }
 
@@ -61,6 +61,11 @@ class Game {
   calculateFallSpeed() {
     //algorithm from the tetris guideline
     this.fallTime = Math.pow((0.8 - ((this.level - 1) * 0.007)), this.level - 1)
+  }
+
+
+  pieceTouchingSurface() {
+    return this.ghostOffset == 0
   }
 
 
@@ -192,6 +197,8 @@ class Game {
 
 
   holdTetro() {
+    const success = this.canHold
+
     if (this.canHold) {
       if (this.holdSlot) {
         [this.holdSlot, this.activeTetro] = [this.activeTetro.tetro, 
@@ -205,6 +212,8 @@ class Game {
       
       this.canHold = false
     }
+
+    return success
   }
 
 
