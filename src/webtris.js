@@ -159,19 +159,13 @@ function keyPressed() {
       case UP_ARROW:
         game.spin(DIRECTION.CLOCKWISE)
 
-        if (lockdownStarted) {
-          lockdownTimer = 0
-          ++lockdownCounter
-        }
+        checkLockdown()
         break
       
       case KEY.Q:
         game.spin(DIRECTION.ANTI_CLOCKWISE)
         
-        if (lockdownStarted) {
-          lockdownTimer = 0
-          ++lockdownCounter
-        }
+        checkLockdown()
         break
       
       case KEY.C:
