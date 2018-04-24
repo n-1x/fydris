@@ -64,7 +64,7 @@ class Game {
   }
 
 
-  pieceTouchingSurface() {
+  isPieceOnSurface() {
     return this.ghostOffset == 0
   }
 

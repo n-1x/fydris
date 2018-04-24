@@ -14,6 +14,17 @@ document.addEventListener("visibilitychange", function() {
   }
 });
 
+
+//fix for the weird p5js thing where returning
+//false for a key doesn't stop default behaviour
+//if it's held down. Look into this
+window.addEventListener("keydown", function(e) {
+  // space and arrow keys
+  if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+      e.preventDefault();
+  }
+}, false)
+
 let lastFallTime = 0
 let lastFrameDrawTime = 0
 let state = STATE.MENU
@@ -73,7 +84,7 @@ function draw() {
       if (lockdownStarted) {
         lockdownTimer += frameTime
         
-        if (!game.pieceTouchingSurface()) {
+        if (!game.isPieceOnSurface()) {
           lockdownStarted = false
         }
       }
@@ -92,7 +103,7 @@ function draw() {
       else if (timeSinceLastFall >= fallTime) { //fall timer
         game.fall()
 
-        if (game.pieceTouchingSurface()) {
+        if (game.isPieceOnSurface()) {
           lockdownStarted = true
           lockdownCounter = 0
           lockdownTimer = 0
@@ -129,7 +140,7 @@ function keyPressed() {
       case LEFT_ARROW:
         game.move(DIRECTION.LEFT)
 
-        autoRepeats.push(DIRECTION.LEFT)
+        autoRepeats.unshift(DIRECTION.LEFT)
         autoRepeatStartTime = currentTime
 
         lockdownTimer = 0
@@ -140,7 +151,7 @@ function keyPressed() {
       case RIGHT_ARROW:
         game.move(DIRECTION.RIGHT)
 
-        autoRepeats.push(DIRECTION.RIGHT)
+        autoRepeats.unshift(DIRECTION.RIGHT)
         autoRepeatStartTime = currentTime
 
         lockdownTimer = 0
@@ -156,15 +167,19 @@ function keyPressed() {
       case UP_ARROW:
         game.spin(DIRECTION.CLOCKWISE)
 
-        lockdownTimer = 0
-        ++lockdownCounter
+        if (lockdownStarted) {
+          lockdownTimer = 0
+          ++lockdownCounter
+        }
         break
       
       case KEY.Q:
         game.spin(DIRECTION.ANTI_CLOCKWISE)
-
-        lockdownTimer = 0
-        ++lockdownCounter
+        
+        if (lockdownStarted) {
+          lockdownTimer = 0
+          ++lockdownCounter
+        }
         break
       
       case KEY.C:
@@ -239,7 +254,7 @@ function keyReleased() {
 
 
 function autoRepeat(time) {
-  const direction = autoRepeats[autoRepeats.length - 1]
+  const direction = autoRepeats[0]
   //if a movement input should be repeated
   if (direction) {
     const timeSinceKeyHeld = time - autoRepeatStartTime
