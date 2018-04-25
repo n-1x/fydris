@@ -1,8 +1,53 @@
-import { TetroBag, ActiveTetro } from './tetro'
+import { TETRO, TetroBag, ActiveTetro } from './tetro'
 import { 
   BOARD_HEIGHT, BOARD_WIDTH, NEXT_SIZE,
   MAX_LEVEL, FIXED_GOAL, DIRECTION, COLOUR } from './constants'
 import { gridForEach, gridSome } from './helpers'
+
+//return the 4 tSpin points based on the orientation
+//given. Only needs to be called when precomputing the points
+function getTPoints(orientation) {
+  let p = [
+    [0, 0], //A
+    [0, 2], //B
+    [2, 2], //C
+    [2, 0]  //D
+  ]
+
+  //because the tspin points are the corners of a grid
+  //rotating them is just the same as cycling their position
+  for (let i = 0; i < orientation; ++i) {
+    [p[0], p[1], p[2], p[3]] = [p[1], p[2], p[3], p[0]]
+  }
+
+  return p
+}
+
+//precompute all tSpin Points. This should be
+//indexed by the t piece's orientation to
+//get the points in the right order
+const TPOINTS = [
+  getTPoints(0),
+  getTPoints(1),
+  getTPoints(2),
+  getTPoints(3)
+]
+
+
+function checkTPoints(board, pos, orientation) {
+  const tPoints = TPOINTS[orientation]
+  const freePoints = []
+
+  TPOINTS[orientation].forEach((tPoint, index) => {
+    const row = pos.row + tPoint[0]
+    const col = pos.col + tPoint[1]
+
+    freePoints[index] = board[row][col] != 0
+  })
+
+  return freePoints
+}
+
 
 class Game {
   constructor() {
@@ -18,7 +63,9 @@ class Game {
 
     this.stats = {
       rowsCleared: 0,
-      tetrises: 0
+      tetrises: 0,
+      tSpins: 0,
+      tSpinMinis: 0
     }
 
     this.initBoard()
@@ -224,55 +271,59 @@ class Game {
     let newOrientation = thisTetro.orientation
 
     if (direction === DIRECTION.CLOCKWISE) {
-      ++newOrientation
+      newOrientation = (newOrientation + 1) % 4
     }
     else if (direction === DIRECTION.ANTI_CLOCKWISE) {
-      --newOrientation
-    }
-
-    //make it circular
-    if (newOrientation < 0) {
-      newOrientation = 3
-    }
-    else if (newOrientation> 3) {
-      newOrientation = 0
+      newOrientation = (newOrientation - 1) % 4
     }
     
     const spunGrid = this.activeTetro.tetro.rotations[newOrientation]
-    
-    //try rotating around point 1
+    const oldPoints = thisTetro.tetro.rotations[thisTetro.orientation].points
+    const newPoints = thisTetro.tetro.rotations[newOrientation].points
+    let rowTranslate = 0
+    let colTranslate = 0
+    let pointCounter = 0 //index 0 is point 2
+
+    //attempt normal spin by checking if new grid fits on board
     spinPossible = this.tetroFitsOnBoard(spunGrid, pos.row, pos.col)
+    
+    //for each of the rotation points, until a fit is found
+    while (!spinPossible && pointCounter < 4) {
+      const oldPoint = oldPoints[pointCounter]
+      const newPoint = newPoints[pointCounter]
+
+      rowTranslate = oldPoint[0] - newPoint[0]
+      colTranslate = oldPoint[1] - newPoint[1]
+
+      spinPossible = this.tetroFitsOnBoard(spunGrid, pos.row + rowTranslate, 
+                                                  pos.col + colTranslate)
+      ++pointCounter
+    }
+    
+
+    //if a valid spin was found apply it
     if (spinPossible) {
-      this.activeTetro.orientation = newOrientation
-      this.activeTetro.grid = spunGrid
-    } 
-    else { //attempt rotations around points 2-5
-      const oldPoints = thisTetro.tetro.rotations[thisTetro.orientation].points
-      const newPoints = thisTetro.tetro.rotations[newOrientation].points
-      let pointCounter = 0 //index 0 is point 2
-      let fitFound = false
+      //apply the translation
+      thisTetro.pos.row += rowTranslate
+      thisTetro.pos.col += colTranslate
 
-      //for each of the rotation points, until a fit is found
-      while (!fitFound && pointCounter < 4) {
-        const oldPoint = oldPoints[pointCounter]
-        const newPoint = newPoints[pointCounter]
-        const rowDiff = oldPoint[0] - newPoint[0]
-        const colDiff = oldPoint[1] - newPoint[1]
+      //switch to the spunGrid
+      thisTetro.orientation = newOrientation
+      thisTetro.grid = spunGrid
+      
+      //check for tspin
+      if (this.activeTetro.tetro == TETRO.tShape) {
+          //these hold a boolean stating whether point a, b, c or d is full
+          const [A, B, C, D] = checkTPoints(this.board, thisTetro.pos, newOrientation)
 
-        fitFound = this.tetroFitsOnBoard(spunGrid, pos.row + rowDiff, 
-                                                   pos.col + colDiff)
-
-        if (fitFound) {
-          //apply the translation
-          thisTetro.pos.row += rowDiff
-          thisTetro.pos.col += colDiff
-
-          //switch to the spunGrid
-          thisTetro.orientation = newOrientation
-          thisTetro.grid = spunGrid
-        }
-        ++pointCounter
+          if (pointCounter == 3 || ((A && B) && (C || D))) {
+            ++this.stats.tSpins
+          }
+          else if ((C && D) && (A || B)) {
+            ++this.stats.tSpinMinis
+          }
       }
+
     }
 
     this.calculateGhostOffset()
@@ -350,5 +401,4 @@ class Game {
   }
 }
 
-export { DIRECTION }
 export default Game

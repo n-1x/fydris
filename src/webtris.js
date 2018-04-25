@@ -26,6 +26,11 @@ window.addEventListener("keydown", function(e) {
   }
 }, false)
 
+const XLARGE = 80
+const LARGE = 65
+const MEDIUM = 50
+const SMALL = 35
+
 let lastFallTime = 0
 let lastFrameDrawTime = 0
 let state = STATE.MENU
@@ -42,14 +47,24 @@ let lockdownCounter = 0
 let lockdownStarted = false
 let lockdownRow = 0
 
+let font = null
+
+
+function preload() {
+  font = loadFont("./resources/CT ProLamina.ttf")
+}
+
 
 function setup() {
   const canvas = createCanvas(CELL_SIZE * BOARD_WIDTH + LEFT_MARGIN + RIGHT_MARGIN, 
                               CELL_SIZE * (BOARD_HEIGHT - BUFFER_ZONE_HEIGHT ))
   
   canvas.parent("game")
-  lastFallTime = millis()
 
+  textFont(font)
+  stroke("#444")
+
+  lastFallTime = millis()
   game = new Game()
 }
 
@@ -62,7 +77,7 @@ function draw() {
 
   //update the displayed score
   if (displayScore < game.score) {
-    displayScore += frameTime
+    displayScore += frameTime * game.level
 
     if (displayScore > game.score) {
       displayScore = game.score
@@ -86,6 +101,7 @@ function draw() {
       if (lockdownStarted) {
         lockdownTimer += frameTime
         
+        //disable lockdown if on the new lowest row
         if (!game.isPieceOnSurface() && game.activeTetro.pos.row > lockdownRow) {
           lockdownStarted = false
         }
@@ -292,6 +308,7 @@ function newGame() {
 
 
 function drawGame() {
+  background("#222229")
   drawBoard()
   drawTetroOnBoard(game.activeTetro.grid,
             game.activeTetro.tetro.colour,
@@ -299,14 +316,18 @@ function drawGame() {
             game.activeTetro.pos.col)
   drawGhostPiece()
 
+  fill(160)
+  textSize(75)
+
   drawNext()
-  drawHoldSlot()
+  drawHold()
   drawGameInfo()
 }
 
 
 function drawBoard() {
-  background("#bbb")
+  push()
+  strokeWeight(2)
 
   for(let rowNum = BUFFER_ZONE_HEIGHT; rowNum < BOARD_HEIGHT; ++rowNum) {
     const row = game.board[rowNum]
@@ -322,39 +343,38 @@ function drawBoard() {
            CELL_SIZE, CELL_SIZE)
     })
   }
+  pop()
 }
 
 
+//draw a tetro on the game board giving the row and position of
+//the tetromino
 function drawTetroOnBoard(tetroGrid, colour, rowPos, colPos) {
-  fill(colour)
-
-  gridForEach(tetroGrid, (cell, rowNum, colNum) => {
-    if(cell) {
-      rect(LEFT_MARGIN + (colPos + colNum) * CELL_SIZE, //x
-            (rowPos + rowNum - BUFFER_ZONE_HEIGHT) * CELL_SIZE, //y
-            CELL_SIZE, CELL_SIZE) //size
-      
-    }
-  })
+  drawTetro(tetroGrid, colour, 
+    LEFT_MARGIN + (colPos * CELL_SIZE),
+    CELL_SIZE * (rowPos - BUFFER_ZONE_HEIGHT))
 }
 
 
-function drawTetro(grid, colour, xPos, yPos) {
+function drawTetro(grid, colour, xPos, yPos, scale = 1.0) {
+  const size = CELL_SIZE * scale
+  push()
+  strokeWeight(3)
   fill(colour)
 
   gridForEach(grid, (cell, rowNum, colNum) => {
     if (cell) {
-      rect(xPos + colNum * CELL_SIZE, yPos + rowNum * CELL_SIZE,
-           CELL_SIZE, CELL_SIZE)
+      rect(xPos + colNum * size, //x
+           yPos + rowNum * size, //y
+           size, size) //x, y size
     }
   })
+  pop()
 }
 
 
 function drawNext() {
-  textSize(32)
-  fill(0)
-  text("Next", 570, 50)
+  text("Next", 570, 40)
 
   game.next.forEach((tetro, queuePos) => {
     const grid = tetro.rotations[0]
@@ -364,12 +384,10 @@ function drawNext() {
 }
 
 
-function drawHoldSlot() {
+function drawHold() {
   const hold = game.holdSlot
 
-  textSize(32)
-  fill(0)
-  text("Hold", 80, 50)
+  text("Hold", 80, 40)
 
   if (hold) {
     drawTetro(hold.rotations[0], hold.colour,
@@ -392,61 +410,68 @@ function drawGhostPiece() {
 function drawMenu() {
   background(COLOUR.NIGHT)
 
-  fill("#bbb")
-  textSize(64)
+  fill(160)
+  textSize(100)
   text("Webtris", 280, 100)
 
-  textSize(32)
+  textSize(50)
   text("Controls", 150, 220)
 
-  textSize(18)
+  textSize(32)
   text("Move tetro: A/D or LEFT/RIGHT arrows", 150, 260)
   text("Spin tetro: Q/E or UP arrow", 150, 285)
   text("Hold: C", 150, 310)
   text("Instant drop: SPACE", 150, 335)
   text("Pause/resume: P", 150, 360)
 
-  textSize(24)
+  textSize(35)
   text("Press ENTER to start", 270, 500)
 }
 
 
 function drawPauseMenu() {
   fill(COLOUR.ORANGE)
-  rect(LEFT_MARGIN + CELL_SIZE, 3 * CELL_SIZE, 
-       (BOARD_WIDTH - 2) * CELL_SIZE, 5 * CELL_SIZE)
 
-  fill("#bbb")
-  textSize(32)
+  strokeWeight(0)
+
+  fill(160)
+  textSize(LARGE)
   text("Paused", 335, 150)
 
-  textSize(24)
-  text("Press R to restart", 300, 200)
+  textSize(MEDIUM)
+  text("P: Unpause", 270, 200)
+  text("R: Restart", 270, 230)
 }
 
 
 function drawEndScreen() {
-  fill(COLOUR.RED)
-  rect(LEFT_MARGIN + CELL_SIZE, 3 * CELL_SIZE, 
-       (BOARD_WIDTH - 2) * CELL_SIZE, 5 * CELL_SIZE)
-
-  fill("#bbb")
-  textSize(32)
+  fill(160)
+  textSize(LARGE)
   text("Game Over", 305, 150)
 
-  textSize(24)
+  textSize(MEDIUM)
   text("Press R to restart", 300, 200)
 }
 
 
 function drawGameInfo() {
-  const leftPos = 80
-  fill(0)
-  textSize(24)
-  text(`Score:\n   ${displayScore}`, leftPos, 200)
-  text(`Level: ${game.level}`, leftPos, 260)
-  text(`Goal: ${10 - game.stats.rowsCleared % 10}`, leftPos, 290)
+  const leftPos = 20
+  let topPos = 160
+  strokeWeight(0)
+  fill(160)
 
-  text(`Lines: ${game.stats.rowsCleared}`, leftPos, 400)
-  text(`Tetrises: ${game.stats.tetrises}`, leftPos, 430)
+  textSize(SMALL)
+  text(`Score:`, leftPos, topPos)
+  textSize(LARGE)
+  text(`${displayScore}`, leftPos + 20, topPos + 40)
+  textSize(SMALL)
+  text(`Level: ${game.level}`, leftPos, topPos + 70)
+  text(`Goal: ${10 - game.stats.rowsCleared % 10}`, leftPos, topPos + 100)
+
+  topPos += 130
+
+  text(`Lines: ${game.stats.rowsCleared}`, leftPos, topPos + 30)
+  text(`Tetrises: ${game.stats.tetrises}`, leftPos, topPos + 60)
+  text(`T-Spins: ${game.stats.tSpins}`, leftPos, topPos + 90)
+  text(`T-Spin Minis: ${game.stats.tSpinMinis}`, leftPos, topPos + 120)
 }

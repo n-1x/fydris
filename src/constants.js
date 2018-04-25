@@ -36,7 +36,7 @@ export const COLOUR = {
   BLUE: [0, 62, 209],
   PURPLE: [128, 0, 209],
   MAGENTA: [255, 0, 255],
-  NIGHT: [42, 41, 45]
+  NIGHT: [34, 34, 41]
 }
 
 export const KEY = {
