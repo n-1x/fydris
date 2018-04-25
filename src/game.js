@@ -202,7 +202,7 @@ class Game {
     //ghost offset is correct
     this.nextTetro()
 
-    if (this.stats.rowsCleared >= this.goal) {
+    while (this.stats.rowsCleared >= this.goal) {
       ++this.level
       this.goal += this.level * 5
       this.calculateFallSpeed()
