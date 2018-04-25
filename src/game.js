@@ -1,13 +1,13 @@
 import { TETRO, TetroBag, ActiveTetro } from './tetro'
 import { 
   BOARD_HEIGHT, BOARD_WIDTH, NEXT_SIZE,
-  MAX_LEVEL, FIXED_GOAL, DIRECTION, COLOUR } from './constants'
+  MAX_LEVEL, FIXED_GOAL, DIRECTION, COLOUR, MOVE } from './constants'
 import { gridForEach, gridSome } from './helpers'
 
 //return the 4 tSpin points based on the orientation
 //given. Only needs to be called when precomputing the points
 function getTPoints(orientation) {
-  let p = [
+  let p = [ //MAYBE CHANGE THIS TO CONST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     [0, 0], //A
     [0, 2], //B
     [2, 2], //C
@@ -57,7 +57,13 @@ class Game {
     this.next = []
     this.holdSlot = null
     this.score = 0
+    this.moveType = {
+      move: MOVE.NONE,
+      rows: 0,
+      backToBack: false
+    }
     this.level = 1
+    this.goal = 10
     this.fallTime = 1 //seconds per line
     this.softDropping = false
 
@@ -96,12 +102,21 @@ class Game {
       this.next.push(this.tetroBag.take())
     }
   }
-  
-  
+
+
   fall() {
     if (!this.move(DIRECTION.DOWN)) {
       this.finishTurn()
     }
+
+    let newObject = {}
+    Object.assign(newObject, this.moveType)
+
+    //reset the move for the next turn
+    this.moveType.move = MOVE.NONE
+    this.moveType.rows = 0
+    
+    return newObject
   }
 
 
@@ -120,44 +135,120 @@ class Game {
     this.placeTetro()
     
     const rowsCleared = this.clearFullRows()
-    
-    this.stats.rowsCleared += rowsCleared
+    this.moveType.rows = rowsCleared
+    let moveScore = 0
 
-    //update the score
-    switch(rowsCleared) {
-      case 1:
-      this.score += 100 * this.level
-      break
-      
-      case 2:
-      this.score += 200 * this.level
-      break
-      
-      case 3:
-      this.score += 500 * this.level
-      break
-      
-      case 4:
-      this.score += 800 * this.level
-      ++this.stats.tetrises
-      break
+    //tracks whether the move contributes to a back to back bonus
+    let backToBackMove = false
+
+    //nonBreakingMoves can't start a back to back chain
+    //and don't give the bonus, but they also don't break it
+    let nonBreakingMove = false
+
+    switch (this.moveType.move) {
+      case MOVE.NONE:
+        switch(rowsCleared) {
+          case 1:
+            moveScore = 100;
+            break
+
+          case 2:
+            moveScore = 300;
+            break
+
+          case 3:
+            moveScore = 500;
+            break
+
+          case 4:
+            backToBackMove = true
+            ++this.stats.tetrises
+            moveScore = 800;
+            break
+        }
+        break
+
+      case MOVE.TSPIN_MINI:
+        backToBackMove = true
+        ++this.stats.tSpinMinis
+
+        switch(rowsCleared) {
+          case 0:
+            nonBreakingMove = true
+            moveScore = 100
+            break
+
+          case 1:
+            moveScore = 200
+            break
+        }
+        break
+
+      case MOVE.TSPIN:
+        ++this.stats.tSpins
+        backToBackMove = true
+
+        switch(rowsCleared) {
+          case 0:
+            nonBreakingMove = true
+            moveScore = 400
+            break
+
+          case 1:
+            moveScore = 800
+            break
+
+          case 2:
+            moveScore = 1200
+            break
+
+          case 3:
+            moveScore = 1600
+            break
+        }
+        break
     }
+
+    //use the move score to calculate the number of line clears to award
+    //needs to be done when score is the value for level 1
+    let rowClears = Math.floor(moveScore / 100)
+
+    //scale the score for the level
+    moveScore *= this.level
+
+    //apply back to back bonuses
+    if (this.moveType.backToBack && backToBackMove && !nonBreakingMove) {
+      rowClears = Math.floor(rowClears * 1.5)
+      moveScore = Math.floor(moveScore * 1.5)
+    }
+
+    //set the value of backtoback to be used for the next finishTurn()
+    this.moveType.backToBack = this.moveType.backToBack || 
+     (backToBackMove && !nonBreakingMove)
+
+    //add the score to the current level
+    this.score += moveScore
+
+    //add the row clears
+    this.stats.rowsCleared += rowClears
+
     //needs to be after the rows are cleared so 
     //ghost offset is correct
     this.nextTetro()
 
     //currenly uses the fixed goal system
-    if (this.stats.rowsCleared >= this.level * FIXED_GOAL) {
+    if (this.stats.rowsCleared >= this.goal) {
       //cap the score at MAX_LEVEL
       ++this.level
-
+      this.goal = 10 * this.level - 5
       this.calculateFallSpeed()
 
       //end of game in marathon mode
       if (this.level > MAX_LEVEL) {
+        this.level = maxLevel
         this.gameOver = true
       }
-    }    
+    }
   }
 
 
@@ -197,7 +288,7 @@ class Game {
       const row = this.board[r]
       
       row.forEach((cell, cellNum) => {
-        let newVal = 0
+        let newVal = 0 //empty cell
         
         //if not top row
         if (r != 0) {
@@ -317,12 +408,10 @@ class Game {
           const [A, B, C, D] = checkTPoints(this.board, thisTetro.pos, newOrientation)
 
           if (pointCounter == 3 || ((A && B) && (C || D))) {
-            console.log("TSPIN")
-            ++this.stats.tSpins
+            this.moveType.move = MOVE.TSPIN
           }
           else if ((C && D) && (A || B)) {
-            console.log("TSPIN MINI")
-            ++this.stats.tSpinMinis
+            this.moveType.move = MOVE.TSPIN_MINI
           }
       }
 

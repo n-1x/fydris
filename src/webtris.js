@@ -10,10 +10,10 @@ import {
 
 //auto pause if the page is not visibile
 document.addEventListener("visibilitychange", function() {
-  if (document.hidden && state == STATE.PLAYING) {
+  if (state == STATE.PLAYING) {
     state = STATE.PAUSED
   }
-});
+})
 
 
 //fix for the weird p5js thing where returning
@@ -112,14 +112,14 @@ function draw() {
       }
       else if (lockdownStarted) { //lockdown has higher priority than fall timer
         if (lockdownTimer >= LOCKDOWN_TIME || 
-            lockdownCounter >= LOCKDOWN_MOVE_LIMIT) {
-          game.fall()
+          lockdownCounter >= LOCKDOWN_MOVE_LIMIT) {
+          gameUpdate()
           lockdownStarted = false
           lastFallTime = lastFrameDrawTime
         }
       }
       else if (timeSinceLastFall >= fallTime) { //fall timer
-        game.fall()
+        gameUpdate()
         checkLockdown()
         lastFallTime = lastFrameDrawTime
       }
@@ -253,6 +253,12 @@ function keyReleased() {
       autoRepeatEnd(DIRECTION.RIGHT)
       break
   }
+}
+
+
+function gameUpdate() {
+  //attempt to make the piece fall and record the move
+  const move = game.fall()
 }
 
 
@@ -466,7 +472,7 @@ function drawGameInfo() {
   text(`${displayScore}`, leftPos + 20, topPos + 40)
   textSize(SMALL)
   text(`Level: ${game.level}`, leftPos, topPos + 70)
-  text(`Goal: ${10 - game.stats.rowsCleared % 10}`, leftPos, topPos + 100)
+  text(`Goal: ${game.goal - game.stats.rowsCleared}`, leftPos, topPos + 100)
 
   topPos += 130
 

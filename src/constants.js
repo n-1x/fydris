@@ -58,3 +58,9 @@ export const STATE = {
   PLAYING: 3,
   GAME_OVER: 4
 }
+
+export const MOVE = {
+  NONE: 0,
+  TSPIN: 1,
+  TSPIN_MINI: 2
+}
