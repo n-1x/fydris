@@ -332,7 +332,8 @@ function drawGame() {
 
   //ghost
   noFill()
-  stroke(game.activeTetro.tetro.colour.concat(140))
+  stroke(game.activeTetro.tetro.colour.concat(180))
+  strokeWeight(3)
   drawTetroOnBoard(game.activeTetro.grid,
     game.activeTetro.pos.row + game.ghostOffset,
     game.activeTetro.pos.col)
@@ -340,7 +341,6 @@ function drawGame() {
   //active tetro
   fill(game.activeTetro.tetro.colour)
   stroke(COLOUR.GRAY)
-  strokeWeight(3)
   drawTetroOnBoard(game.activeTetro.grid,
     game.activeTetro.pos.row,
     game.activeTetro.pos.col)
