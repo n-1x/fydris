@@ -65,7 +65,7 @@ function setup() {
   canvas.parent("game")
 
   textFont(font)
-  stroke("#444")
+  strokeWeight(2)
 
   lastFallTime = millis()
   game = new Game()
@@ -326,26 +326,36 @@ function newGame() {
 
 function drawGame() {
   background("#222229")
+  stroke(COLOUR.GRAY)
+  strokeWeight(2)
   drawBoard()
+
+  //ghost
+  noFill()
+  stroke(game.activeTetro.tetro.colour.concat(140))
   drawTetroOnBoard(game.activeTetro.grid,
-            game.activeTetro.tetro.colour,
-            game.activeTetro.pos.row,
-            game.activeTetro.pos.col)
-  drawGhostPiece()
+    game.activeTetro.pos.row + game.ghostOffset,
+    game.activeTetro.pos.col)
+    
+  //active tetro
+  fill(game.activeTetro.tetro.colour)
+  stroke(COLOUR.GRAY)
+  strokeWeight(3)
+  drawTetroOnBoard(game.activeTetro.grid,
+    game.activeTetro.pos.row,
+    game.activeTetro.pos.col)
 
-  fill(160)
-  textSize(75)
-
+  strokeWeight(0)
+  textSize(LARGE)
   drawNext()
   drawHold()
+
+  strokeWeight(0)
   drawGameInfo()
 }
 
 
 function drawBoard() {
-  push()
-  strokeWeight(2)
-
   for(let rowNum = BUFFER_ZONE_HEIGHT; rowNum < BOARD_HEIGHT; ++rowNum) {
     const row = game.board[rowNum]
 
@@ -360,24 +370,20 @@ function drawBoard() {
            CELL_SIZE, CELL_SIZE)
     })
   }
-  pop()
 }
 
 
 //draw a tetro on the game board giving the row and position of
 //the tetromino
-function drawTetroOnBoard(tetroGrid, colour, rowPos, colPos) {
-  drawTetro(tetroGrid, colour, 
+function drawTetroOnBoard(tetroGrid, rowPos, colPos) {
+  drawTetro(tetroGrid, 
     LEFT_MARGIN + (colPos * CELL_SIZE),
     CELL_SIZE * (rowPos - BUFFER_ZONE_HEIGHT))
 }
 
 
-function drawTetro(grid, colour, xPos, yPos, scale = 1.0) {
+function drawTetro(grid, xPos, yPos, scale = 1.0) {
   const size = CELL_SIZE * scale
-  push()
-  strokeWeight(3)
-  fill(colour)
 
   gridForEach(grid, (cell, rowNum, colNum) => {
     if (cell) {
@@ -386,48 +392,43 @@ function drawTetro(grid, colour, xPos, yPos, scale = 1.0) {
            size, size) //x, y size
     }
   })
-  pop()
 }
 
 
 function drawNext() {
+  fill(COLOUR.LIGHT_GRAY)
   text("Next", 570, 40)
+  strokeWeight(2)
 
   game.next.forEach((tetro, queuePos) => {
     const grid = tetro.rotations[0]
     const rowPos = 70 + (queuePos * 3) * CELL_SIZE
-    drawTetro(grid, tetro.colour, 570, rowPos)
+
+    fill(tetro.colour)
+    drawTetro(grid, 570, rowPos)
   })
+
+  strokeWeight(0)
 }
 
 
 function drawHold() {
   const hold = game.holdSlot
 
+  fill(COLOUR.LIGHT_GRAY)
   text("Hold", 80, 40)
 
   if (hold) {
-    drawTetro(hold.rotations[0], hold.colour,
-              80, 70)
+    strokeWeight(2)
+    fill(hold.colour)
+    drawTetro(hold.rotations[0], 80, 70)
   }
 }
-
-
-function drawGhostPiece() {
-  const pos = game.activeTetro.pos
-  //concat the alpha value to the colour
-  const colour = game.activeTetro.tetro.colour.concat(40)
-
-  drawTetroOnBoard(game.activeTetro.grid, colour, 
-                   game.activeTetro.pos.row + game.ghostOffset,
-                   game.activeTetro.pos.col)
-}
-
 
 function drawMenu() {
   background(COLOUR.NIGHT)
 
-  fill(160)
+  fill(COLOUR.LIGHT_GRAY)
   textSize(100)
   text("Webtris", 280, 100)
 
@@ -447,11 +448,7 @@ function drawMenu() {
 
 
 function drawPauseMenu() {
-  fill(COLOUR.ORANGE)
-
-  strokeWeight(0)
-
-  fill(160)
+  fill(COLOUR.LIGHT_GRAY)
   textSize(LARGE)
   text("Paused", 335, 150)
 
@@ -462,7 +459,7 @@ function drawPauseMenu() {
 
 
 function drawEndScreen() {
-  fill(160)
+  fill(COLOUR.LIGHT_GRAY)
   textSize(LARGE)
   text("Game Over", 305, 150)
 
@@ -474,8 +471,8 @@ function drawEndScreen() {
 function drawGameInfo() {
   const leftPos = 20
   let topPos = 160
-  strokeWeight(0)
-  fill(160)
+
+  fill(COLOUR.LIGHT_GRAY)
 
   textSize(SMALL)
   text(`Score:`, leftPos, topPos)
@@ -489,8 +486,8 @@ function drawGameInfo() {
 
   text(`Lines: ${game.stats.rowsCleared}`, leftPos, topPos + 30)
   text(`Tetrises: ${game.stats.tetrises}`, leftPos, topPos + 60)
-  text(`T-Spins: ${game.stats.tSpins}`, leftPos, topPos + 90)
-  text(`T-Spin Minis: ${game.stats.tSpinMinis}`, leftPos, topPos + 120)
+  text(`T-Spin Minis: ${game.stats.tSpinMinis}`, leftPos, topPos + 90)
+  text(`T-Spins: ${game.stats.tSpins}`, leftPos, topPos + 120)
 
   //DEBUG
   text(`: ${lastMove}`, leftPos - 15, topPos + 170)
