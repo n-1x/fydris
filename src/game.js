@@ -63,7 +63,7 @@ class Game {
       backToBack: false
     }
     this.level = 1
-    this.goal = 10
+    this.goal = 5
     this.fallTime = 1 //seconds per line
     this.softDropping = false
 
@@ -115,7 +115,7 @@ class Game {
     //reset the move for the next turn
     this.moveType.move = MOVE.NONE
     this.moveType.rows = 0
-    
+
     return newObject
   }
 
