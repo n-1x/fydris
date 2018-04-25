@@ -4,7 +4,7 @@ import {
   BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE, BUFFER_ZONE_HEIGHT, 
   NEXT_SIZE, AUTO_REPEAT_DELAY, AUTO_REPEAT_FREQ, LEFT_MARGIN,
   RIGHT_MARGIN, LOCKDOWN_TIME, LOCKDOWN_MOVE_LIMIT,
-  DIRECTION, STATE, KEY, COLOUR
+  DIRECTION, STATE, KEY, COLOUR, MOVE
 } from './constants'
 
 
@@ -48,6 +48,9 @@ let lockdownStarted = false
 let lockdownRow = 0
 
 let font = null
+
+//DEBUG
+let lastMove = ""
 
 
 function preload() {
@@ -113,13 +116,13 @@ function draw() {
       else if (lockdownStarted) { //lockdown has higher priority than fall timer
         if (lockdownTimer >= LOCKDOWN_TIME || 
           lockdownCounter >= LOCKDOWN_MOVE_LIMIT) {
-          gameUpdate()
+          handleMoveData(game.fall())
           lockdownStarted = false
           lastFallTime = lastFrameDrawTime
         }
       }
       else if (timeSinceLastFall >= fallTime) { //fall timer
-        gameUpdate()
+        handleMoveData(game.fall())
         checkLockdown()
         lastFallTime = lastFrameDrawTime
       }
@@ -175,13 +178,11 @@ function keyPressed() {
       case KEY.W:
       case UP_ARROW:
         game.spin(DIRECTION.CLOCKWISE)
-
         checkLockdown()
         break
       
       case KEY.Q:
         game.spin(DIRECTION.ANTI_CLOCKWISE)
-        
         checkLockdown()
         break
       
@@ -198,7 +199,7 @@ function keyPressed() {
         break
       
       case KEY.SPACE:
-        game.hardDrop()
+        handleMoveData(game.hardDrop())
         lastFallTime = currentTime
         lockdownStarted = false
         break
@@ -256,9 +257,18 @@ function keyReleased() {
 }
 
 
-function gameUpdate() {
-  //attempt to make the piece fall and record the move
-  const move = game.fall()
+function handleMoveData(moveData) {
+  if (moveData) {
+    //attempt to make the piece fall and record the move
+    const {move, rows, backToBack} = moveData
+    const moveName = ["", "T-Spin ", "T-Spin Mini "][move]
+    const rowName = ["", "Single", "Double", "Triple", "Tetris"][rows]
+    let string = `${backToBack ? "Back to Back" : ""} ${moveName}${rowName}`.trim()
+  
+    if (string != "") {
+      lastMove = string
+    }
+  }
 }
 
 
@@ -480,4 +490,7 @@ function drawGameInfo() {
   text(`Tetrises: ${game.stats.tetrises}`, leftPos, topPos + 60)
   text(`T-Spins: ${game.stats.tSpins}`, leftPos, topPos + 90)
   text(`T-Spin Minis: ${game.stats.tSpinMinis}`, leftPos, topPos + 120)
+
+  //DEBUG
+  text(`: ${lastMove}`, leftPos - 15, topPos + 170)
 }
