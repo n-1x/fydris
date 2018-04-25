@@ -299,6 +299,7 @@ function autoRepeat(time) {
         lastAutoRepeatTime = time
 
         game.move(direction)
+        checkLockdown()
       }
     }
   }
