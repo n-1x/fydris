@@ -42,7 +42,7 @@ function checkTPoints(board, pos, orientation) {
     const row = pos.row + tPoint[0]
     const col = pos.col + tPoint[1]
 
-    freePoints[index] = board[row][col] != 0
+    freePoints[index] = !board[row] || board[row][col] != 0
   })
 
   return freePoints
@@ -317,9 +317,11 @@ class Game {
           const [A, B, C, D] = checkTPoints(this.board, thisTetro.pos, newOrientation)
 
           if (pointCounter == 3 || ((A && B) && (C || D))) {
+            console.log("TSPIN")
             ++this.stats.tSpins
           }
           else if ((C && D) && (A || B)) {
+            console.log("TSPIN MINI")
             ++this.stats.tSpinMinis
           }
       }
