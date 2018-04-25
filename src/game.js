@@ -222,6 +222,8 @@ class Game {
       moveScore = Math.floor(moveScore * 1.5)
     }
 
+    console.log(`Awarding ${rowClears} row clears`)
+
     //set the value of backtoback to be used for the next finishTurn()
     this.moveType.backToBack = this.moveType.backToBack || 
      (backToBackMove && !nonBreakingMove)
@@ -240,7 +242,7 @@ class Game {
     if (this.stats.rowsCleared >= this.goal) {
       //cap the score at MAX_LEVEL
       ++this.level
-      this.goal = 10 * this.level - 5
+      this.goal += this.level * 5
       this.calculateFallSpeed()
 
       //end of game in marathon mode
