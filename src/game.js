@@ -334,7 +334,11 @@ class Game {
       newOrientation = (newOrientation + 1) % 4
     }
     else if (direction === DIRECTION.ANTI_CLOCKWISE) {
-      newOrientation = (newOrientation - 1) % 4
+      --newOrientation
+
+      if (newOrientation < 0) {
+        newOrientation = 3
+      }
     }
     
     const spunGrid = this.activeTetro.tetro.rotations[newOrientation]

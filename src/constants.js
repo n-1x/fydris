@@ -40,6 +40,7 @@ export const COLOUR = {
 }
 
 export const KEY = {
+  W: ('W').charCodeAt(0),
   S: ('S').charCodeAt(0),
   A: ('A').charCodeAt(0),
   D: ('D').charCodeAt(0),
