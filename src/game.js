@@ -380,7 +380,7 @@ class Game {
           //these hold a boolean stating whether point a, b, c or d is full
           const [A, B, C, D] = checkTPoints(this.board, thisTetro.pos, newOrientation)
 
-          if (pointCounter == 3 || ((A && B) && (C || D))) {
+          if (pointCounter == 4 || ((A && B) && (C || D))) {
             this.moveData.move = MOVE.TSPIN
           }
           else if ((C && D) && (A || B)) {
