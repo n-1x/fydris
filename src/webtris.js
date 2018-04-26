@@ -93,6 +93,9 @@ function draw() {
       break
 
     case STATE.PLAYING:
+      console.clear()
+      console.log(lockdownTimer)
+      console.log(lockdownCounter)
       autoRepeat(currentTime)
       //track the time passed
       const timeSinceLastFall = lastFrameDrawTime - lastFallTime
@@ -190,6 +193,7 @@ function keyPressed() {
         const holdWorked = game.holdTetro()
         
         if (holdWorked) {
+          lockdownStarted = false
           lastFallTime = currentTime
         }
         break
