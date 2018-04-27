@@ -237,6 +237,13 @@ function keyPressed() {
         break
     }
   }
+  else if (state == STATE.GAME_END) {
+    switch(keyCode) {
+      case KEY.R:
+        newGame()
+        break
+    }
+  }
 
   return returnVal
 }
