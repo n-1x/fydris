@@ -26,6 +26,7 @@ window.addEventListener("keydown", function(e) {
   }
 }, false)
 
+const FLARGE = 100
 const XLARGE = 80
 const LARGE = 65
 const MEDIUM = 50
@@ -443,21 +444,23 @@ function drawMenu() {
   background(COLOUR.NIGHT)
 
   fill(COLOUR.LIGHT_GRAY)
-  textSize(100)
-  text("Webtris", 280, 100)
+  textAlign(CENTER)
+  textSize(FLARGE)
+  text("Fydris", centerX, 100)
+  textSize(LARGE)
+  text("Press ENTER to start", centerX, 500)
+  textAlign(LEFT)
 
-  textSize(50)
+  textSize(MEDIUM)
   text("Controls", 150, 220)
 
-  textSize(32)
+  textSize(SMALL)
   text("Move tetro: A/D or LEFT/RIGHT arrows", 150, 260)
   text("Spin tetro: Q/E or UP arrow", 150, 285)
   text("Hold: C", 150, 310)
   text("Instant drop: SPACE", 150, 335)
   text("Pause/resume: P", 150, 360)
 
-  textSize(35)
-  text("Press ENTER to start", 270, 500)
 }
 
 
