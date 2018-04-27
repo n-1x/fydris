@@ -31,6 +31,8 @@ const LARGE = 65
 const MEDIUM = 50
 const SMALL = 35
 
+const centerX = LEFT_MARGIN + (BOARD_WIDTH * CELL_SIZE) / 2
+
 let lastFallTime = 0
 let lastFrameDrawTime = 0
 let state = STATE.MENU
@@ -93,9 +95,6 @@ function draw() {
       break
 
     case STATE.PLAYING:
-      console.clear()
-      console.log(lockdownTimer)
-      console.log(lockdownCounter)
       autoRepeat(currentTime)
       //track the time passed
       const timeSinceLastFall = lastFrameDrawTime - lastFallTime
@@ -114,7 +113,7 @@ function draw() {
       }
 
       if (game.gameOver) {
-        state = STATE.GAME_OVER
+        state = game.gameCompleted ? STATE.GAME_END : STATE.GAME_OVER
       }
       else if (lockdownStarted) { //lockdown has higher priority than fall timer
         if (lockdownTimer >= LOCKDOWN_TIME || 
@@ -138,7 +137,11 @@ function draw() {
       break
 
     case STATE.GAME_OVER:
-      drawEndScreen()
+      drawGameOverScreen()
+      break
+
+    case STATE.GAME_END:
+      drawGameEndScreen()
       break
   }
 }
@@ -452,9 +455,11 @@ function drawMenu() {
 
 
 function drawPauseMenu() {
+  textAlign(CENTER)
   fill(COLOUR.LIGHT_GRAY)
   textSize(LARGE)
-  text("Paused", 335, 150)
+  text("Paused", centerX, 150)
+  textAlign(LEFT)
 
   textSize(MEDIUM)
   text("P: Unpause", 270, 200)
@@ -462,14 +467,29 @@ function drawPauseMenu() {
 }
 
 
-function drawEndScreen() {
+function drawGameOverScreen() {
+  textAlign(CENTER)
   fill(COLOUR.LIGHT_GRAY)
   textSize(LARGE)
-  text("Game Over", 305, 150)
+  text("Game Over", centerX, 150)
 
   textSize(MEDIUM)
-  text("Press R to restart", 300, 200)
+  text("Press R to restart", centerX, 200)
+  textAlign(LEFT)
 }
+
+
+function drawGameEndScreen() {
+  textAlign(CENTER)
+  fill(COLOUR.LIGHT_GRAY)
+  textSize(LARGE)
+  text("Contratulations!", centerX, 150)
+
+  textSize(MEDIUM)
+  text("Press R to restart", centerX, 200)
+  textAlign(LEFT)
+}
+
 
 
 function drawGameInfo() {

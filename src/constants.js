@@ -59,7 +59,8 @@ export const STATE = {
   MENU: 1,
   PAUSED: 2,
   PLAYING: 3,
-  GAME_OVER: 4
+  GAME_OVER: 4,
+  GAME_END: 5
 }
 
 export const MOVE = {

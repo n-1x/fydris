@@ -52,6 +52,7 @@ function checkTPoints(board, pos, orientation) {
 class Game {
   constructor() {
     this.gameOver = false
+    this.gameCompleted = false
     this.ghostOffset = 0
     this.tetroBag = new TetroBag()
     this.next = []
@@ -202,15 +203,15 @@ class Game {
     //ghost offset is correct
     this.nextTetro()
 
-    while (this.stats.rowsCleared >= this.goal) {
-      ++this.level
-      this.goal += this.level * 5
-      this.calculateFallSpeed()
-
-      //end of game in marathon mode
-      if (this.level > MAX_LEVEL) {
-        this.level = maxLevel
+    while (!this.gameOver && this.stats.rowsCleared >= this.goal) {
+      if (this.level == MAX_LEVEL) {
         this.gameOver = true
+        this.gameCompleted = true
+      }
+      else {
+        ++this.level
+        this.goal += this.level * 5
+        this.calculateFallSpeed()
       }
     }
   }
