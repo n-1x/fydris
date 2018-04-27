@@ -54,7 +54,7 @@ let lastMove = ""
 
 
 function preload() {
-  font = loadFont("./resources/CT ProLamina.ttf")
+  font = loadFont("fydris/resources/CT ProLamina.ttf")
 }
 
 
