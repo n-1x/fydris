@@ -181,8 +181,7 @@ function keyPressed() {
       case KEY.A:
       case LEFT_ARROW:
         game.move(DIRECTION.LEFT)
-        sound.move.playMode("restart")
-        sound.move.play()
+        //sound.move.play()
 
         autoRepeats.unshift(DIRECTION.LEFT)
         autoRepeatStartTime = currentTime
