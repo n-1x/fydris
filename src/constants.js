@@ -27,7 +27,7 @@ export const DIRECTION = {
 }
 
 export const COLOUR = {
-  WHITE: [255, 255, 255],
+  ALMOST_WHITE: [200, 200, 200],
   RED: [209, 41, 0],
   ORANGE: [209, 121, 0],
   YELLOW: [209, 205, 0],
@@ -37,8 +37,9 @@ export const COLOUR = {
   PURPLE: [128, 0, 209],
   MAGENTA: [255, 0, 255],
   NIGHT: [34, 34, 41],
+  GRAY: [90, 90, 90],
   LIGHT_GRAY: [160, 160, 160],
-  GRAY: [90, 90, 90]
+  ALMOST_BLACK: [35, 35, 35]
 }
 
 export const KEY = {

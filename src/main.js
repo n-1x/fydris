@@ -63,19 +63,19 @@ function preload(){
   soundFormats("wav")
 
   sound.move = loadSound(`${soundRes}/move.wav`)
-  sound.rotateA = loadSound(`${soundRes}/rotateA.wav`)
-  sound.rotateC = loadSound(`${soundRes}/rotateC.wav`)
-  sound.hold = loadSound(`${soundRes}/hold.wav`)
+  // sound.rotateA = loadSound(`${soundRes}/rotateA.wav`)
+  // sound.rotateC = loadSound(`${soundRes}/rotateC.wav`)
+  // sound.hold = loadSound(`${soundRes}/hold.wav`)
 
-  sound.single = loadSound(`${soundRes}/single.wav`)
-  sound.double = loadSound(`${soundRes}/double.wav`)
-  sound.triple = loadSound(`${soundRes}/triple.wav`)
+  // sound.single = loadSound(`${soundRes}/single.wav`)
+  // sound.double = loadSound(`${soundRes}/double.wav`)
+  // sound.triple = loadSound(`${soundRes}/triple.wav`)
 
-  sound.tetris = loadSound(`${soundRes}/tetris.wav`)
-  sound.tetrisBTB = loadSound(`${soundRes}/tetrisBTB.wav`)
+  // sound.tetris = loadSound(`${soundRes}/tetris.wav`)
+  // sound.tetrisBTB = loadSound(`${soundRes}/tetrisBTB.wav`)
 
-  sound.tSpin = loadSound(`${soundRes}/tSpin.wav`)
-  sound.tSpinBTB = loadSound(`${soundRes}/tSpinBTB.wav`)
+  // sound.tSpin = loadSound(`${soundRes}/tSpin.wav`)
+  // sound.tSpinBTB = loadSound(`${soundRes}/tSpinBTB.wav`)
 
   font = loadFont("fydris/resources/CT ProLamina.ttf")
 }
@@ -181,6 +181,7 @@ function keyPressed() {
       case KEY.A:
       case LEFT_ARROW:
         game.move(DIRECTION.LEFT)
+        sound.move.playMode("restart")
         sound.move.play()
 
         autoRepeats.unshift(DIRECTION.LEFT)
@@ -191,7 +192,7 @@ function keyPressed() {
       case KEY.D:
       case RIGHT_ARROW:
         game.move(DIRECTION.RIGHT)
-        sound.move.play()
+        //sound.move.play()
 
         autoRepeats.unshift(DIRECTION.RIGHT)
         autoRepeatStartTime = currentTime
@@ -207,13 +208,13 @@ function keyPressed() {
       case KEY.W:
       case UP_ARROW:
         game.spin(DIRECTION.CLOCKWISE)
-        sound.rotateC.play()
+        //sound.rotateC.play()
         checkLockdown()
         break
       
       case KEY.Q:
         game.spin(DIRECTION.ANTI_CLOCKWISE)
-        sound.rotateA.play()
+        //sound.rotateA.play()
         checkLockdown()
         break
       
@@ -221,7 +222,7 @@ function keyPressed() {
         const holdWorked = game.holdTetro()
         
         if (holdWorked) {
-          sound.hold.play()
+          //sound.hold.play()
           lockdownStarted = false
           lastFallTime = currentTime
         }
@@ -307,13 +308,13 @@ function handleMoveData(moveData) {
   
     if (move === 0) {
       if (rows === 4) {
-        (backToBack ? sound.tetris : sound.tetrisBTB).play()
+        //(backToBack ? sound.tetris : sound.tetrisBTB).play()
       }
       else if (rows > 0){
-        [sound.single, sound.double, sound.triple][rows - 1].play()
+        //[sound.single, sound.double, sound.triple][rows - 1].play()
       }
     } else {
-      (backToBack ? sound.tSpin : sound.tSpinBTB).play()
+      //(backToBack ? sound.tSpin : sound.tSpinBTB).play()
     }
 
     if (string != "") {
@@ -391,7 +392,7 @@ function drawGame() {
     
   //active tetro
   fill(game.activeTetro.tetro.colour)
-  stroke(COLOUR.GRAY)
+  stroke(COLOUR.NIGHT)
   drawTetroOnBoard(game.activeTetro.grid,
     game.activeTetro.pos.row,
     game.activeTetro.pos.col)
@@ -447,7 +448,7 @@ function drawTetro(grid, xPos, yPos, scale = 1.0) {
 
 
 function drawNext() {
-  fill(COLOUR.LIGHT_GRAY)
+  fill(COLOUR.ALMOST_WHITE)
   text("Next", 570, 40)
   strokeWeight(2)
 
@@ -466,7 +467,7 @@ function drawNext() {
 function drawHold() {
   const hold = game.holdSlot
 
-  fill(COLOUR.LIGHT_GRAY)
+  fill(COLOUR.ALMOST_WHITE)
   text("Hold", 80, 40)
 
   if (hold) {
@@ -502,7 +503,9 @@ function drawMenu() {
 
 function drawPauseMenu() {
   textAlign(CENTER)
-  fill(COLOUR.LIGHT_GRAY)
+  fill(COLOUR.ALMOST_WHITE)
+  stroke(35)
+  strokeWeight(5)
   textSize(LARGE)
   text("Paused", centerX, 150)
   textAlign(LEFT)
@@ -515,7 +518,9 @@ function drawPauseMenu() {
 
 function drawGameOverScreen() {
   textAlign(CENTER)
-  fill(COLOUR.LIGHT_GRAY)
+  fill(COLOUR.ALMOST_WHITE)
+  stroke(35)
+  strokeWeight(5)
   textSize(LARGE)
   text("Game Over", centerX, 150)
 
@@ -527,7 +532,9 @@ function drawGameOverScreen() {
 
 function drawGameEndScreen() {
   textAlign(CENTER)
-  fill(COLOUR.LIGHT_GRAY)
+  fill(COLOUR.ALMOST_WHITE)
+  stroke(35)
+  strokeWeight(6)
   textSize(LARGE)
   text("Contratulations!", centerX, 150)
 
@@ -542,7 +549,7 @@ function drawGameInfo() {
   const leftPos = 20
   let topPos = 160
 
-  fill(COLOUR.LIGHT_GRAY)
+  fill(COLOUR.ALMOST_WHITE)
 
   textSize(SMALL)
   text(`Score:`, leftPos, topPos)
