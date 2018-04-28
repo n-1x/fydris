@@ -52,11 +52,31 @@ let lockdownRow = 0
 
 let font = null
 
+const sound = {}
+
 //DEBUG
 let lastMove = ""
 
 
-function preload() {
+function preload(){
+  const soundRes = 'fydris/resources/sounds'
+  soundFormats("wav")
+
+  sound.move = loadSound(`${soundRes}/move.wav`)
+  sound.rotateA = loadSound(`${soundRes}/rotateA.wav`)
+  sound.rotateC = loadSound(`${soundRes}/rotateC.wav`)
+  sound.hold = loadSound(`${soundRes}/hold.wav`)
+
+  sound.single = loadSound(`${soundRes}/single.wav`)
+  sound.double = loadSound(`${soundRes}/double.wav`)
+  sound.triple = loadSound(`${soundRes}/triple.wav`)
+
+  sound.tetris = loadSound(`${soundRes}/tetris.wav`)
+  sound.tetrisBTB = loadSound(`${soundRes}/tetrisBTB.wav`)
+
+  sound.tSpin = loadSound(`${soundRes}/tSpin.wav`)
+  sound.tSpinBTB = loadSound(`${soundRes}/tSpinBTB.wav`)
+
   font = loadFont("fydris/resources/CT ProLamina.ttf")
 }
 
@@ -161,6 +181,7 @@ function keyPressed() {
       case KEY.A:
       case LEFT_ARROW:
         game.move(DIRECTION.LEFT)
+        sound.move.play()
 
         autoRepeats.unshift(DIRECTION.LEFT)
         autoRepeatStartTime = currentTime
@@ -170,6 +191,7 @@ function keyPressed() {
       case KEY.D:
       case RIGHT_ARROW:
         game.move(DIRECTION.RIGHT)
+        sound.move.play()
 
         autoRepeats.unshift(DIRECTION.RIGHT)
         autoRepeatStartTime = currentTime
@@ -185,11 +207,13 @@ function keyPressed() {
       case KEY.W:
       case UP_ARROW:
         game.spin(DIRECTION.CLOCKWISE)
+        sound.rotateC.play()
         checkLockdown()
         break
       
       case KEY.Q:
         game.spin(DIRECTION.ANTI_CLOCKWISE)
+        sound.rotateA.play()
         checkLockdown()
         break
       
@@ -197,6 +221,7 @@ function keyPressed() {
         const holdWorked = game.holdTetro()
         
         if (holdWorked) {
+          sound.hold.play()
           lockdownStarted = false
           lastFallTime = currentTime
         }
@@ -280,6 +305,17 @@ function handleMoveData(moveData) {
     const rowName = ["", "Single", "Double", "Triple", "Tetris"][rows]
     let string = `${backToBack ? "Back to Back" : ""} ${moveName}${rowName}`.trim()
   
+    if (move === 0) {
+      if (rows === 4) {
+        (backToBack ? sound.tetris : sound.tetrisBTB).play()
+      }
+      else if (rows > 0){
+        [sound.single, sound.double, sound.triple][rows - 1].play()
+      }
+    } else {
+      (backToBack ? sound.tSpin : sound.tSpinBTB).play()
+    }
+
     if (string != "") {
       lastMove = string
     }
