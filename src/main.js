@@ -337,7 +337,7 @@ function handleMoveData(moveData) {
     // }
 
     if (string != "") {
-      notifs.push(new Notif("Back to back\nTetris", LARGE))
+      notifs.push(new Notif(string, LARGE))
     }
   }
 }
