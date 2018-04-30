@@ -40,6 +40,7 @@ let lastFrameDrawTime = 0
 let state = STATE.MENU
 let displayScore = 0
 let currentTime = 0
+let frameTime = 0
 let game = null
 
 const autoRepeats = []
@@ -99,7 +100,7 @@ function setup() {
 
 function draw() {
   currentTime = Math.floor(millis())
-  const frameTime = currentTime - lastFrameDrawTime
+  frameTime = currentTime - lastFrameDrawTime
 
   lastFrameDrawTime += frameTime
 
@@ -118,14 +119,14 @@ function draw() {
       break
 
     case STATE.PLAYING:
-      autoRepeat(currentTime)
       //track the time passed
       const timeSinceLastFall = lastFrameDrawTime - lastFallTime
+      
+      //the amount of time until the fall. / by 20 if softDropping
+      const fallTime = game.fallTime * 1000 / (game.softDropping ? 20 : 1)
+      
+      autoRepeat(currentTime)
     
-      //the amount of time until the fall. Should be 20x quicker
-      //if game.softDropping
-      let fallTime = game.fallTime * 1000 / (game.softDropping ? 20 : 1)
-
       if (lockdownStarted) {
         lockdownTimer += frameTime
         
@@ -153,24 +154,6 @@ function draw() {
       }
 
       drawGame()
-      //update notifications
-      if (notifs[0]) {
-        notifs[0].update(frameTime)
-
-        if (notifs[0].finished) {
-          notifs.shift()
-        }
-        else {
-          notifs[0].text.split('\n').forEach((line, index) => {
-            stroke(COLOUR.NIGHT)
-            strokeWeight(16)
-            textAlign(CENTER)
-            textSize(notifs[0].size)
-            text(line, centerX, 100 + index * 60)
-            textAlign(LEFT)
-          })
-        }
-      }
       break
 
     case STATE.PAUSED:
@@ -200,22 +183,12 @@ function keyPressed() {
     switch(keyCode) { 
       case KEY.A:
       case LEFT_ARROW:
-        game.move(DIRECTION.LEFT)
-        //sound.move.play()
-
-        autoRepeats.unshift(DIRECTION.LEFT)
-        autoRepeatStartTime = currentTime
-        checkLockdown()
+        moveAttempt(DIRECTION.LEFT)
         break
   
       case KEY.D:
       case RIGHT_ARROW:
-        game.move(DIRECTION.RIGHT)
-        //sound.move.play()
-
-        autoRepeats.unshift(DIRECTION.RIGHT)
-        autoRepeatStartTime = currentTime
-        checkLockdown()
+        moveAttempt(DIRECTION.RIGHT)
         break
   
       case KEY.S:
@@ -317,6 +290,26 @@ function keyReleased() {
 }
 
 
+function moveAttempt(direction) {
+  //only update lockdown if the move was successful, otherwise
+  //this will tick down the lockdownCounter even when the piece
+  //isn't moving, resulting in an unexpected place
+  if (game.move(direction)) {
+    checkLockdown()
+  }
+
+  //sound.move.play()
+
+  if (!autoRepeats.includes(direction)) {
+    autoRepeats.unshift(direction)
+    autoRepeatStartTime = currentTime
+  }
+  else {
+    lastAutoRepeatTime = currentTime
+  }
+}
+
+
 function handleMoveData(moveData) {
   if (moveData) {
     //attempt to make the piece fall and record the move
@@ -367,10 +360,7 @@ function autoRepeat(time) {
       const timeSinceLastRepeat = time - lastAutoRepeatTime
 
       if (timeSinceLastRepeat >= AUTO_REPEAT_FREQ) {
-        lastAutoRepeatTime = time
-
-        game.move(direction)
-        checkLockdown()
+        moveAttempt(direction)
       }
     }
   }
@@ -415,6 +405,9 @@ function drawGame() {
   drawTetroOnBoard(game.activeTetro.grid,
     game.activeTetro.pos.row,
     game.activeTetro.pos.col)
+
+  //notification
+  drawNotification()
 
   strokeWeight(0)
   textSize(LARGE)
@@ -463,6 +456,28 @@ function drawTetro(grid, xPos, yPos, scale = 1.0) {
            size, size) //x, y size
     }
   })
+}
+
+
+function drawNotification() {
+  if (notifs[0]) {
+    notifs[0].update(frameTime)
+
+    if (notifs[0].finished) {
+      notifs.shift()
+    }
+    else {
+      notifs[0].text.split('\n').forEach((line, index) => {
+        fill(COLOUR.ALMOST_WHITE)
+        stroke(COLOUR.NIGHT)
+        strokeWeight(16)
+        textAlign(CENTER)
+        textSize(notifs[0].size)
+        text(line, centerX, 100 + index * 60)
+        textAlign(LEFT)
+      })
+    }
+  }
 }
 
 
