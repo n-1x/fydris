@@ -1,5 +1,6 @@
 import { gridForEach } from './helpers'
 import Game from './game'
+import Notif from './notif'
 import {
   BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE, BUFFER_ZONE_HEIGHT, 
   NEXT_SIZE, AUTO_REPEAT_DELAY, AUTO_REPEAT_FREQ, LEFT_MARGIN,
@@ -8,12 +9,12 @@ import {
 } from './constants'
 
 
-//auto pause if the page is not visibile
-document.addEventListener("visibilitychange", function() {
+//auto pause if the focus moves from the game
+window.onblur = () => {
   if (state == STATE.PLAYING) {
     state = STATE.PAUSED
   }
-})
+}
 
 
 //fix for the weird p5js thing where returning
@@ -53,6 +54,7 @@ let lockdownRow = 0
 let font = null
 
 const sound = {}
+const notifs = []
 
 //DEBUG
 let lastMove = ""
@@ -62,7 +64,7 @@ function preload(){
   const soundRes = 'fydris/resources/sounds'
   soundFormats("wav")
 
-  sound.move = loadSound(`${soundRes}/move.wav`)
+  //sound.move = loadSound(`${soundRes}/move.wav`)
   // sound.rotateA = loadSound(`${soundRes}/rotateA.wav`)
   // sound.rotateC = loadSound(`${soundRes}/rotateC.wav`)
   // sound.hold = loadSound(`${soundRes}/hold.wav`)
@@ -151,6 +153,24 @@ function draw() {
       }
 
       drawGame()
+      //update notifications
+      if (notifs[0]) {
+        notifs[0].update(frameTime)
+
+        if (notifs[0].finished) {
+          notifs.shift()
+        }
+        else {
+          notifs[0].text.split('\n').forEach((line, index) => {
+            stroke(COLOUR.NIGHT)
+            strokeWeight(16)
+            textAlign(CENTER)
+            textSize(notifs[0].size)
+            text(line, centerX, 100 + index * 60)
+            textAlign(LEFT)
+          })
+        }
+      }
       break
 
     case STATE.PAUSED:
@@ -303,21 +323,21 @@ function handleMoveData(moveData) {
     const {move, rows, backToBack} = moveData
     const moveName = ["", "T-Spin ", "T-Spin Mini "][move]
     const rowName = ["", "Single", "Double", "Triple", "Tetris"][rows]
-    let string = `${backToBack ? "Back to Back" : ""} ${moveName}${rowName}`.trim()
+    let string = `${backToBack ? "Back to Back\n" : ""} ${moveName}${rowName}`.trim()
   
-    if (move === 0) {
-      if (rows === 4) {
-        //(backToBack ? sound.tetris : sound.tetrisBTB).play()
-      }
-      else if (rows > 0){
-        //[sound.single, sound.double, sound.triple][rows - 1].play()
-      }
-    } else {
-      //(backToBack ? sound.tSpin : sound.tSpinBTB).play()
-    }
+    // if (move === 0) {
+    //   if (rows === 4) {
+    //     (backToBack ? sound.tetris : sound.tetrisBTB).play()
+    //   }
+    //   else if (rows > 0){
+    //     [sound.single, sound.double, sound.triple][rows - 1].play()
+    //   }
+    // } else {
+    //   (backToBack ? sound.tSpin : sound.tSpinBTB).play()
+    // }
 
     if (string != "") {
-      lastMove = string
+      notifs.push(new Notif("Back to back\nTetris", LARGE))
     }
   }
 }
@@ -564,7 +584,4 @@ function drawGameInfo() {
   text(`Tetrises: ${game.stats.tetrises}`, leftPos, topPos + 60)
   text(`T-Spin Minis: ${game.stats.tSpinMinis}`, leftPos, topPos + 90)
   text(`T-Spins: ${game.stats.tSpins}`, leftPos, topPos + 120)
-
-  //DEBUG
-  text(`: ${lastMove}`, leftPos - 15, topPos + 170)
 }
