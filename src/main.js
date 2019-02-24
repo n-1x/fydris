@@ -386,7 +386,7 @@ function newGame() {
 
 
 function drawGame() {
-  background("#222229")
+  background("#272530")
   stroke(COLOUR.GRAY)
   strokeWeight(2)
   drawBoard()
@@ -512,7 +512,7 @@ function drawHold() {
 }
 
 function drawMenu() {
-  background(COLOUR.NIGHT)
+  background("#272530");
 
   fill(COLOUR.LIGHT_GRAY)
   textAlign(CENTER)
