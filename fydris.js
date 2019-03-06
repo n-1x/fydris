@@ -45,6 +45,7 @@ const DIRECTION = {
 };
 
 const COLOUR = {
+  BACKGROUND: "#181818",
   ALMOST_WHITE: [200, 200, 200],
   RED: [209, 41, 0],
   ORANGE: [209, 121, 0],
@@ -1292,7 +1293,7 @@ function newGame() {
 
 
 function drawGame() {
-  background("#272530");
+  background(COLOUR.BACKGROUND);
   stroke(COLOUR.GRAY);
   strokeWeight(2);
   drawBoard();
@@ -1418,7 +1419,7 @@ function drawHold() {
 }
 
 function drawMenu() {
-  background("#272530");
+  background(COLOUR.BACKGROUND);
 
   fill(COLOUR.LIGHT_GRAY);
   textAlign(CENTER);

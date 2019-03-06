@@ -27,6 +27,7 @@ export const DIRECTION = {
 }
 
 export const COLOUR = {
+  BACKGROUND: "#181818",
   ALMOST_WHITE: [200, 200, 200],
   RED: [209, 41, 0],
   ORANGE: [209, 121, 0],
