@@ -1,1 +1,0 @@
-rollup src/main.js --no-treeshake -f esm -o fydris.js
