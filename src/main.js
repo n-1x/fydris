@@ -650,6 +650,8 @@ function drawGameOverScreen(gameCompleted) {
 function drawGameInfo() {
   const leftPos = 20;
   let topPos = 200;
+  //goal could be negative if game finished
+  const goal = g_game.goal - g_game.stats.rowsCleared;
 
   g_ctx.textAlign = LEFT;
   drawGameText(`Score:`, leftPos, topPos, SMALL);
@@ -658,7 +660,7 @@ function drawGameInfo() {
   topPos += 60;
   drawGameText(`Level: ${g_game.level}`, leftPos, topPos, SMALL);
   topPos += 30;
-  drawGameText(`Goal: ${g_game.goal - g_game.stats.rowsCleared}`, leftPos, topPos, SMALL);
+  drawGameText(`Goal: ${goal < 0 ? "Done" : goal}`, leftPos, topPos, SMALL);
 
   topPos += 60;
 
