@@ -1,156 +1,154 @@
-import { gridForEach } from './helpers'
-import Game from './game'
-import Notif from './notif'
+import { gridForEach } from './helpers.js';
+import Game from './game.js';
+import Notif from './notif.js';
 import {
   BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE, BUFFER_ZONE_HEIGHT, 
   NEXT_SIZE, AUTO_REPEAT_DELAY, AUTO_REPEAT_FREQ, LEFT_MARGIN,
   RIGHT_MARGIN, LOCKDOWN_TIME, LOCKDOWN_MOVE_LIMIT,
   DIRECTION, STATE, KEY, COLOUR, MOVE
-} from './constants'
+} from './constants.js';
 
 
 //auto pause if the focus moves from the game
 window.onblur = () => {
-  if (state == STATE.PLAYING) {
-    state = STATE.PAUSED
+  if (g_state == STATE.PLAYING) {
+    g_state = STATE.PAUSED;
   }
-}
-
+};
 
 //fix for the weird p5js thing where returning
 //false for a key doesn't stop default behaviour
 //if it's held down. Look into this
-window.addEventListener("keydown", function(e) {
+window.addEventListener("keydown", e => {
   // space and arrow keys
   if([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
       e.preventDefault();
   }
-}, false)
+}, false);
 
-const FLARGE = 100
-const XLARGE = 80
-const LARGE = 65
-const MEDIUM = 50
-const SMALL = 35
+const VLARGE = 80;
+const LARGE = 45;
+const MEDIUM = 30;
+const SMALL = 20;
 
-const centerX = LEFT_MARGIN + (BOARD_WIDTH * CELL_SIZE) / 2
+const CENTER = "center";
+const LEFT = "left";
 
-let lastFallTime = 0
-let lastFrameDrawTime = 0
-let state = STATE.MENU
-let displayScore = 0
-let currentTime = 0
-let frameTime = 0
-let game = null
+const centerX = LEFT_MARGIN + 
+  (BOARD_WIDTH * CELL_SIZE) / 2;
 
-const autoRepeats = []
-let autoRepeatStartTime = 0
-let lastAutoRepeatTime = 0
+let g_lastFallTime = 0;
+let g_lastFrameDrawTime = 0;
+let g_state = STATE.MENU;
+let g_displayScore = 0;
+let g_currentTime = 0;
+let g_frameTime = 0;
+let g_game = null;
 
-let lockdownTimer = 0
-let lockdownCounter = 0
-let lockdownStarted = false
-let lockdownRow = 0
+const g_autoRepeats = [];
+let g_autoRepeatStartTime = 0;
+let g_lastAutoRepeatTime = 0;
 
-let font = null
+let g_startTime = 0;
+let g_lockdownTimer = 0;
+let g_lockdownCounter = 0;
+let g_lockdownStarted = false;
+let g_lockdownRow = 0;
 
-const sound = {}
-const notifs = []
+const g_notifs = [];
 
-//DEBUG
-let lastMove = ""
+let g_ctx = null;
 
-
-function preload(){
-  const soundRes = 'fydris/resources/sounds'
-  soundFormats("wav")
-
-  //sound.move = loadSound(`${soundRes}/move.wav`)
-  // sound.rotateA = loadSound(`${soundRes}/rotateA.wav`)
-  // sound.rotateC = loadSound(`${soundRes}/rotateC.wav`)
-  // sound.hold = loadSound(`${soundRes}/hold.wav`)
-
-  // sound.single = loadSound(`${soundRes}/single.wav`)
-  // sound.double = loadSound(`${soundRes}/double.wav`)
-  // sound.triple = loadSound(`${soundRes}/triple.wav`)
-
-  // sound.tetris = loadSound(`${soundRes}/tetris.wav`)
-  // sound.tetrisBTB = loadSound(`${soundRes}/tetrisBTB.wav`)
-
-  // sound.tSpin = loadSound(`${soundRes}/tSpin.wav`)
-  // sound.tSpinBTB = loadSound(`${soundRes}/tSpinBTB.wav`)
-
-  font = loadFont("fydris/resources/CT ProLamina.ttf")
+function getTimeSinceStart() {
+  return performance.now() - g_startTime;
 }
 
+//window.addEventListener("resize", windowResized, false);
+window.addEventListener("DOMContentLoaded", setup, false);
+window.addEventListener("keydown", keyPressed, false);
+window.addEventListener("keyup", keyReleased, false);
 
-function setup() {
-  const canvas = createCanvas(CELL_SIZE * BOARD_WIDTH + LEFT_MARGIN + RIGHT_MARGIN, 
-                              CELL_SIZE * (BOARD_HEIGHT - BUFFER_ZONE_HEIGHT ))
+
+async function setup() {
+  const div = document.getElementById("game");
+  const canvas = document.createElement("canvas");
+
+  g_ctx = canvas.getContext("2d");
+
+  g_ctx.canvas.width = CELL_SIZE * BOARD_WIDTH + LEFT_MARGIN + RIGHT_MARGIN;
+  g_ctx.canvas.height = CELL_SIZE * (BOARD_HEIGHT - BUFFER_ZONE_HEIGHT);
+
+  div.appendChild(canvas);
+
+  g_ctx.textAlign = CENTER;
+  drawGameText("Loading...", centerX, 200, LARGE);
+
+  const fontFace = new FontFace("Unispace", 
+    "url('../resources/unispace\ rg.ttf')");
+  const loadedFont = await fontFace.load();
+  document.fonts.add(loadedFont);
   
-  canvas.parent("game")
+  g_startTime = performance.now();
+  g_lastFallTime = getTimeSinceStart();
+  g_game = new Game();
 
-  textFont(font)
-  strokeWeight(2)
-
-  lastFallTime = millis()
-  game = new Game()
+  window.requestAnimationFrame(draw);
 }
 
 
 function draw() {
-  currentTime = Math.floor(millis())
-  frameTime = currentTime - lastFrameDrawTime
+  g_currentTime = Math.floor(getTimeSinceStart())
+  g_frameTime = g_currentTime - g_lastFrameDrawTime
 
-  lastFrameDrawTime += frameTime
+  g_lastFrameDrawTime += g_frameTime
 
   //update the displayed score
-  if (displayScore < game.score) {
-    displayScore += frameTime * game.level
+  if (g_displayScore < g_game.score) {
+    g_displayScore += g_frameTime * g_game.level
 
-    if (displayScore > game.score) {
-      displayScore = game.score
+    if (g_displayScore > g_game.score) {
+      g_displayScore = g_game.score
     }
   }
 
-  switch(state) {
+  switch(g_state) {
     case STATE.MENU:
       drawMenu()
       break
 
     case STATE.PLAYING:
       //track the time passed
-      const timeSinceLastFall = lastFrameDrawTime - lastFallTime
+      const timeSinceLastFall = g_lastFrameDrawTime - g_lastFallTime
       
       //the amount of time until the fall. / by 20 if softDropping
-      const fallTime = game.fallTime * 1000 / (game.softDropping ? 20 : 1)
+      const fallTime = g_game.fallTime * 1000 / (g_game.softDropping ? 20 : 1)
       
-      autoRepeat(currentTime)
+      autoRepeat(g_currentTime)
     
-      if (lockdownStarted) {
-        lockdownTimer += frameTime
+      if (g_lockdownStarted) {
+        g_lockdownTimer += g_frameTime
         
         //disable lockdown if on the new lowest row
-        if (!game.isPieceOnSurface() && game.activeTetro.pos.row > lockdownRow) {
-          lockdownStarted = false
+        if (!g_game.isPieceOnSurface() && g_game.activeTetro.pos.row > g_lockdownRow) {
+          g_lockdownStarted = false
         }
       }
 
-      if (game.gameOver) {
-        state = game.gameCompleted ? STATE.GAME_END : STATE.GAME_OVER
+      if (g_game.gameOver) {
+        g_state = g_game.gameCompleted ? STATE.GAME_END : STATE.GAME_OVER
       }
-      else if (lockdownStarted) { //lockdown has higher priority than fall timer
-        if (lockdownTimer >= LOCKDOWN_TIME || 
-          lockdownCounter >= LOCKDOWN_MOVE_LIMIT) {
-          handleMoveData(game.fall())
-          lockdownStarted = false
-          lastFallTime = lastFrameDrawTime
+      else if (g_lockdownStarted) { //lockdown has higher priority than fall timer
+        if (g_lockdownTimer >= LOCKDOWN_TIME || 
+          g_lockdownCounter >= LOCKDOWN_MOVE_LIMIT) {
+          handleMoveData(g_game.fall())
+          g_lockdownStarted = false
+          g_lastFallTime = g_lastFrameDrawTime
         }
       }
       else if (timeSinceLastFall >= fallTime) { //fall timer
-        handleMoveData(game.fall())
+        handleMoveData(g_game.fall())
         checkLockdown()
-        lastFallTime = lastFrameDrawTime
+        g_lastFallTime = g_lastFrameDrawTime
       }
 
       drawGame()
@@ -168,124 +166,125 @@ function draw() {
       drawGameEndScreen()
       break
   }
+
+  window.requestAnimationFrame(draw);
 }
 
 
-function keyPressed() {
+function keyPressed(event) {
   //array of keys to ignore default behaviour
-  const annoyingKeys = [KEY.SPACE, UP_ARROW, DOWN_ARROW]
+  const annoyingKeys = [KEY.SPACE, KEY.UP_ARROW, KEY.DOWN_ARROW];
+
   //if returnval is false, browser ignores default behaviour like scrolling
-  let returnVal = !annoyingKeys.includes(keyCode)
+  let returnVal = !annoyingKeys.includes(event.keyCode);
   
   //stop keys being logged twice
-  if (state == STATE.PLAYING) {
+  if (g_state == STATE.PLAYING) {
     //for non-ascii keys
-    switch(keyCode) { 
+    switch(event.keyCode) { 
       case KEY.A:
-      case LEFT_ARROW:
-        moveAttempt(DIRECTION.LEFT)
-        break
+      case KEY.LEFT_ARROW:
+        moveAttempt(DIRECTION.LEFT);
+        break;
   
       case KEY.D:
-      case RIGHT_ARROW:
-        moveAttempt(DIRECTION.RIGHT)
-        break
+      case KEY.RIGHT_ARROW:
+        moveAttempt(DIRECTION.RIGHT);
+        break;
   
       case KEY.S:
-      case DOWN_ARROW:
-        game.softDropping = true
-        break
+      case KEY.DOWN_ARROW:
+        g_game.softDropping = true;
+        break;
 
       case KEY.E:
       case KEY.W:
-      case UP_ARROW:
-        game.spin(DIRECTION.CLOCKWISE)
+      case KEY.UP_ARROW:
+        g_game.spin(DIRECTION.CLOCKWISE);
         //sound.rotateC.play()
-        checkLockdown()
-        break
+        checkLockdown();
+        break;
       
       case KEY.Q:
-        game.spin(DIRECTION.ANTI_CLOCKWISE)
+        g_game.spin(DIRECTION.ANTI_CLOCKWISE);
         //sound.rotateA.play()
-        checkLockdown()
-        break
+        checkLockdown();
+        break;
       
       case KEY.C:
-        const holdWorked = game.holdTetro()
+        const holdWorked = g_game.holdTetro();
         
         if (holdWorked) {
           //sound.hold.play()
-          lockdownStarted = false
-          lastFallTime = currentTime
+          g_lockdownStarted = false;
+          g_lastFallTime = g_currentTime;
         }
-        break
+        break;
       
       case KEY.P:
-        state = STATE.PAUSED
-        break
+        g_state = STATE.PAUSED;
+        break;
       
       case KEY.SPACE:
-        handleMoveData(game.hardDrop())
-        lastFallTime = currentTime
-        lockdownStarted = false
-        break
+        handleMoveData(g_game.hardDrop());
+        g_lastFallTime = g_currentTime;
+        g_lockdownStarted = false;
+        break;
     }
   }
-  else if (state == STATE.MENU) {
-    switch (keyCode) {
-      case ENTER:
-        state = STATE.PLAYING
-        break
+  else if (g_state == STATE.MENU) {
+    switch (event.keyCode) {
+      case KEY.ENTER:
+        g_state = STATE.PLAYING;
+        break;
     }
   }
-  else if (state == STATE.PAUSED) {
-    switch (keyCode) {
+  else if (g_state == STATE.PAUSED) {
+    switch (event.keyCode) {
       case KEY.P:
-        state = STATE.PLAYING
-        break
+        g_state = STATE.PLAYING;
+        break;
 
       case KEY.R:
-        newGame()
-        break
+        newGame();
+        break;
     }
   }
-  else if (state == STATE.GAME_OVER) {
-    switch(keyCode) {
+  else if (g_state == STATE.GAME_OVER) {
+    switch(event.keyCode) {
       case KEY.R:
-        newGame()
-        break
+        newGame();
+        break;
     }
   }
-  else if (state == STATE.GAME_END) {
-    switch(keyCode) {
+  else if (g_state == STATE.GAME_END) {
+    switch(event.keyCode) {
       case KEY.R:
-        newGame()
-        break
+        newGame();
+        break;
     }
   }
 
-  return returnVal
+  return returnVal;
 }
 
 
-function keyReleased() {
-  const autoRepeatKeys = [KEY.A, KEY.D, LEFT_ARROW, RIGHT_ARROW]
-
-  switch(keyCode) {
+function keyReleased(event) {
+  switch(event.keyCode) {
     case KEY.A:
-    case LEFT_ARROW:
-      autoRepeatEnd(DIRECTION.LEFT)
-      break
+    case KEY.LEFT_ARROW:
+      autoRepeatEnd(DIRECTION.LEFT);
+      break;
 
     case KEY.S:
-    case DOWN_ARROW:
-      game.softDropping = false
-      break
+    case KEY.DOWN_ARROW:
+      g_game.softDropping = false;
+      break;
 
     case KEY.D:
-    case RIGHT_ARROW:
-      autoRepeatEnd(DIRECTION.RIGHT)
-      break
+    case KEY.RIGHT_ARROW:
+      autoRepeatEnd(DIRECTION.RIGHT);
+      break;
   }
 }
 
@@ -294,18 +293,18 @@ function moveAttempt(direction) {
   //only update lockdown if the move was successful, otherwise
   //this will tick down the lockdownCounter even when the piece
   //isn't moving, resulting in an unexpected place
-  if (game.move(direction)) {
-    checkLockdown()
+  if (g_game.move(direction)) {
+    checkLockdown();
   }
 
   //sound.move.play()
 
-  if (!autoRepeats.includes(direction)) {
-    autoRepeats.unshift(direction)
-    autoRepeatStartTime = currentTime
+  if (!g_autoRepeats.includes(direction)) {
+    g_autoRepeats.unshift(direction);
+    g_autoRepeatStartTime = g_currentTime;
   }
   else {
-    lastAutoRepeatTime = currentTime
+    g_lastAutoRepeatTime = g_currentTime;
   }
 }
 
@@ -313,10 +312,10 @@ function moveAttempt(direction) {
 function handleMoveData(moveData) {
   if (moveData) {
     //attempt to make the piece fall and record the move
-    const {move, rows, backToBack} = moveData
-    const moveName = ["", "T-Spin ", "T-Spin Mini "][move]
-    const rowName = ["", "Single", "Double", "Triple", "Tetris"][rows]
-    let string = `${backToBack ? "Back to Back\n" : ""} ${moveName}${rowName}`.trim()
+    const {move, rows, backToBack} = moveData;
+    const moveName = ["", "T-Spin ", "T-Spin Mini "][move];
+    const rowName = ["", "Single", "Double", "Triple", "Tetris"][rows];
+    let string = `${backToBack ? "Back to Back\n" : ""} ${moveName}${rowName}`.trim();
   
     // if (move === 0) {
     //   if (rows === 4) {
@@ -330,37 +329,37 @@ function handleMoveData(moveData) {
     // }
 
     if (string != "") {
-      notifs.push(new Notif(string, LARGE))
+      g_notifs.push(new Notif(string, LARGE));
     }
   }
 }
 
 
 function checkLockdown() {
-  if (lockdownStarted) {
-    lockdownTimer = 0
-    ++lockdownCounter
+  if (g_lockdownStarted) {
+    g_lockdownTimer = 0;
+    ++g_lockdownCounter;
   }
-  else if (game.isPieceOnSurface()) {
-    lockdownStarted = true
-    lockdownCounter = 0
-    lockdownTimer = 0
-    lockdownRow = game.activeTetro.pos.row
+  else if (g_game.isPieceOnSurface()) {
+    g_lockdownStarted = true;
+    g_lockdownCounter = 0;
+    g_lockdownTimer = 0;
+    g_lockdownRow = g_game.activeTetro.pos.row;
   }
 }
 
 
 function autoRepeat(time) {
-  const direction = autoRepeats[0]
+  const direction = g_autoRepeats[0];
   //if a movement input should be repeated
   if (direction) {
-    const timeSinceKeyHeld = time - autoRepeatStartTime
+    const timeSinceKeyHeld = time - g_autoRepeatStartTime;
 
     if (timeSinceKeyHeld >= AUTO_REPEAT_DELAY) {
-      const timeSinceLastRepeat = time - lastAutoRepeatTime
+      const timeSinceLastRepeat = time - g_lastAutoRepeatTime;
 
       if (timeSinceLastRepeat >= AUTO_REPEAT_FREQ) {
-        moveAttempt(direction)
+        moveAttempt(direction);
       }
     }
   }
@@ -368,235 +367,249 @@ function autoRepeat(time) {
 
 
 function autoRepeatEnd(direction) {
-  autoRepeats.splice(autoRepeats.lastIndexOf(direction), 1)
+  g_autoRepeats.splice(g_autoRepeats.lastIndexOf(direction), 1);
   
-  if (autoRepeats.length != 0) {
-    game.move(autoRepeats[autoRepeats.length - 1])
+  if (g_autoRepeats.length != 0) {
+    g_game.move(g_autoRepeats[g_autoRepeats.length - 1]);
   }
 
-  autoRepeatStartTime = currentTime
+  g_autoRepeatStartTime = g_currentTime;
 } 
 
 
 function newGame() {
-  game = new Game()
-  state = STATE.PLAYING
-  displayScore = 0
+  g_game = new Game();
+  g_state = STATE.PLAYING;
+  g_displayScore = 0;
+}
+
+
+function setFillStyle(colour) {
+  g_ctx.fillStyle = `rgb(${colour[0]}, ${colour[1]}, ${colour[2]})`;
+}
+
+
+function setStrokeStyle(colour) {
+  g_ctx.strokeStyle = `rgb(${colour[0]}, ${colour[1]}, ${colour[2]})`;
+}
+
+
+function fillBG(colour) {
+  const tempCol = g_ctx.fillStyle;
+  setFillStyle(colour);
+  g_ctx.fillRect(0, 0, g_ctx.canvas.width, g_ctx.canvas.height);
+  g_ctx.fillStyle = tempCol;
+}
+
+
+function drawGameText(t, x, y, size = MEDIUM) {
+  setFillStyle(COLOUR.ALMOST_WHITE);
+  setStrokeStyle(COLOUR.ALMOST_BLACK);
+  g_ctx.lineWidth = 8;
+  g_ctx.font = `${size}px Unispace`;
+  g_ctx.strokeText(t, x, y);
+  g_ctx.fillText(t, x, y);
 }
 
 
 function drawGame() {
-  background(COLOUR.BACKGROUND)
-  stroke(COLOUR.GRAY)
-  strokeWeight(2)
-  drawBoard()
+  fillBG(COLOUR.BACKGROUND);
 
-  //ghost
-  noFill()
-  stroke(game.activeTetro.tetro.colour.concat(180))
-  strokeWeight(3)
-  drawTetroOnBoard(game.activeTetro.grid,
-    game.activeTetro.pos.row + game.ghostOffset,
-    game.activeTetro.pos.col)
+  drawBoard();
     
-  //active tetro
-  fill(game.activeTetro.tetro.colour)
-  stroke(COLOUR.NIGHT)
-  drawTetroOnBoard(game.activeTetro.grid,
-    game.activeTetro.pos.row,
-    game.activeTetro.pos.col)
+  //active tetro, use tetro colour with dark stroke
+  drawTetroOnBoard(g_game.activeTetro.grid,
+    g_game.activeTetro.pos.row,
+    g_game.activeTetro.pos.col, 
+    g_game.activeTetro.tetro.colour, COLOUR.NIGHT
+  );
 
-  //notification
-  drawNotification()
+  //ghost, just stroke with tetro colour
+  drawTetroOnBoard(g_game.activeTetro.grid,
+    g_game.activeTetro.pos.row + g_game.ghostOffset,
+    g_game.activeTetro.pos.col, 
+    null, g_game.activeTetro.tetro.colour
+  );
 
-  strokeWeight(0)
-  textSize(LARGE)
-  drawNext()
-  drawHold()
-
-  strokeWeight(0)
-  drawGameInfo()
+  drawHold();
+  drawNext();
+  drawGameInfo();
+  updateAndDrawNotif();
 }
 
 
 function drawBoard() {
   for(let rowNum = BUFFER_ZONE_HEIGHT; rowNum < BOARD_HEIGHT; ++rowNum) {
-    const row = game.board[rowNum]
+    const row = g_game.board[rowNum]
 
     row.forEach((cell, colNum) => {
       if (cell != 0) {
-        fill(Object.values(COLOUR)[cell])
+        setFillStyle(Object.values(COLOUR)[cell]);
       }
       else {
-        fill(COLOUR.NIGHT)
+        setFillStyle(COLOUR.NIGHT);
       }
-      rect(LEFT_MARGIN + colNum * CELL_SIZE, (rowNum - BUFFER_ZONE_HEIGHT) * CELL_SIZE,
-           CELL_SIZE, CELL_SIZE)
-    })
+
+      g_ctx.fillRect(LEFT_MARGIN + colNum * CELL_SIZE, 
+        (rowNum - BUFFER_ZONE_HEIGHT) * CELL_SIZE,
+        CELL_SIZE, CELL_SIZE
+      );
+
+      g_ctx.lineWidth = 2;
+      setStrokeStyle(COLOUR.DARK_GRAY);
+      g_ctx.strokeRect(LEFT_MARGIN + colNum * CELL_SIZE, 
+        (rowNum - BUFFER_ZONE_HEIGHT) * CELL_SIZE,
+        CELL_SIZE, CELL_SIZE
+      );
+    });
   }
 }
 
 
 //draw a tetro on the game board giving the row and position of
 //the tetromino
-function drawTetroOnBoard(tetroGrid, rowPos, colPos) {
+function drawTetroOnBoard(tetroGrid, rowPos, colPos,
+  fillColour, strokeColour) {
+  
+  g_ctx.lineWidth = 2;
+
   drawTetro(tetroGrid, 
     LEFT_MARGIN + (colPos * CELL_SIZE),
-    CELL_SIZE * (rowPos - BUFFER_ZONE_HEIGHT))
+    CELL_SIZE * (rowPos - BUFFER_ZONE_HEIGHT), 1.0, 
+    fillColour, strokeColour
+  );
 }
 
 
-function drawTetro(grid, xPos, yPos, scale = 1.0) {
-  const size = CELL_SIZE * scale
+//draw a tetro anywhere on canvas, for example 
+function drawTetro(grid, xPos, yPos, scale = 1.0,
+  fillColour, strokeColour = COLOUR.ALMOST_BLACK) {
+  const size = CELL_SIZE * scale;
 
   gridForEach(grid, (cell, rowNum, colNum) => {
     if (cell) {
-      rect(xPos + colNum * size, //x
-           yPos + rowNum * size, //y
-           size, size) //x, y size
+      if (fillColour) {
+        setFillStyle(fillColour);
+        g_ctx.fillRect(xPos + colNum * size,
+          yPos + rowNum * size,
+          size, size);
+      }
+
+      if (strokeColour) {
+        g_ctx.lineWidth = 3;
+        setStrokeStyle(strokeColour);
+        g_ctx.strokeRect(xPos + colNum * size,
+          yPos + rowNum * size,
+          size, size);
+      }
     }
-  })
+  });
 }
 
 
-function drawNotification() {
-  if (notifs[0]) {
-    notifs[0].update(frameTime)
+function updateAndDrawNotif() {
+  if (g_notifs[0]) {
+    g_notifs[0].update(g_frameTime);
 
-    if (notifs[0].finished) {
-      notifs.shift()
+    if (g_notifs[0].finished) {
+      g_notifs.shift();
     }
     else {
-      notifs[0].text.split('\n').forEach((line, index) => {
-        fill(COLOUR.ALMOST_WHITE)
-        stroke(COLOUR.NIGHT)
-        strokeWeight(16)
-        textAlign(CENTER)
-        textSize(notifs[0].size)
-        text(line, centerX, 100 + index * 60)
-        textAlign(LEFT)
-      })
+      g_notifs[0].text.split('\n').forEach((line, index) => {
+        g_ctx.textAlign = CENTER;
+        drawGameText(line, centerX, 100 + index * 60, g_notifs[0].size)
+      });
     }
   }
 }
 
 
 function drawNext() {
-  fill(COLOUR.ALMOST_WHITE)
-  text("Next", 570, 40)
-  strokeWeight(2)
+  const leftPos = 600;
+  drawGameText("Next", leftPos, 40, MEDIUM);
 
-  game.next.forEach((tetro, queuePos) => {
-    const grid = tetro.rotations[0]
-    const rowPos = 70 + (queuePos * 3) * CELL_SIZE
-
-    fill(tetro.colour)
-    drawTetro(grid, 570, rowPos)
-  })
-
-  strokeWeight(0)
+  g_game.next.forEach((tetro, queuePos) => {
+    const rowPos = 70 + (queuePos * 3) * CELL_SIZE;
+    drawTetro(tetro.rotations[0], leftPos, rowPos, 1.0, tetro.colour);
+  });
 }
 
 
 function drawHold() {
-  const hold = game.holdSlot
+  const hold = g_game.holdSlot;
 
-  fill(COLOUR.ALMOST_WHITE)
-  text("Hold", 80, 40)
+  drawGameText("Hold", 80, 40, MEDIUM);
 
   if (hold) {
-    strokeWeight(2)
-    fill(hold.colour)
-    drawTetro(hold.rotations[0], 80, 70)
+    drawTetro(hold.rotations[0], 80, 80, 1.0, hold.colour);
   }
 }
 
+
 function drawMenu() {
-  background(COLOUR.BACKGROUND);
+  fillBG(COLOUR.BACKGROUND);
 
-  fill(COLOUR.LIGHT_GRAY)
-  textAlign(CENTER)
-  textSize(FLARGE)
-  text("Fydris", centerX, 100)
-  textSize(LARGE)
-  text("Press ENTER to start", centerX, 500)
-  textAlign(LEFT)
+  setFillStyle(COLOUR.LIGHT_GRAY);
+  g_ctx.textAlign = CENTER;
+  drawGameText("Fydris", centerX, 120, VLARGE);
+  drawGameText("Press ENTER to start", centerX, 500, LARGE);
 
-  textSize(MEDIUM)
-  text("Controls", 150, 220)
-
-  textSize(SMALL)
-  text("Move tetro: A/D or LEFT/RIGHT arrows", 150, 260)
-  text("Spin tetro: Q/E or UP arrow", 150, 285)
-  text("Hold: C", 150, 310)
-  text("Instant drop: SPACE", 150, 335)
-  text("Pause/resume: P", 150, 360)
-
+  g_ctx.textAlign = LEFT;
+  drawGameText("Controls", 150, 220, MEDIUM);
+  drawGameText("Move tetro: A/D or LEFT/RIGHT arrows", 150, 260, SMALL);
+  drawGameText("Spin tetro: Q/E or UP arrow", 150, 285, SMALL);
+  drawGameText("Hold: C", 150, 310, SMALL);
+  drawGameText("Instant drop: SPACE", 150, 335, SMALL);
+  drawGameText("Pause/resume: P", 150, 360, SMALL);
 }
 
 
 function drawPauseMenu() {
-  textAlign(CENTER)
-  fill(COLOUR.ALMOST_WHITE)
-  stroke(35)
-  strokeWeight(5)
-  textSize(LARGE)
-  text("Paused", centerX, 150)
-  textAlign(LEFT)
+  g_ctx.textAlign = CENTER;
 
-  textSize(MEDIUM)
-  text("P: Unpause", 270, 200)
-  text("R: Restart", 270, 230)
+  drawGameText("Paused", centerX, 150, LARGE);
+
+  g_ctx.textAlign = LEFT;
+  drawGameText("P: Unpause", 270, 200, MEDIUM);
+  drawGameText("R: Restart", 270, 240, MEDIUM);
 }
 
 
 function drawGameOverScreen() {
-  textAlign(CENTER)
-  fill(COLOUR.ALMOST_WHITE)
-  stroke(35)
-  strokeWeight(5)
-  textSize(LARGE)
-  text("Game Over", centerX, 150)
-
-  textSize(MEDIUM)
-  text("Press R to restart", centerX, 200)
-  textAlign(LEFT)
+  g_ctx.textAlign = CENTER;
+  setFillStyle(COLOUR.ALMOST_WHITE)
+  drawGameText("Game Over", centerX, 150, LARGE)
+  drawGameText("Press R to restart", centerX, 200, MEDIUM)
 }
 
 
 function drawGameEndScreen() {
   textAlign(CENTER)
-  fill(COLOUR.ALMOST_WHITE)
-  stroke(35)
-  strokeWeight(6)
-  textSize(LARGE)
-  text("Contratulations!", centerX, 150)
-
-  textSize(MEDIUM)
-  text("Press R to restart", centerX, 200)
-  textAlign(LEFT)
+  drawGameText("Contratulations!", centerX, 150, LARGE);
+  drawGameText("Press R to restart", centerX, 200, MEDIUM);
 }
 
 
-
 function drawGameInfo() {
-  const leftPos = 20
-  let topPos = 160
+  const leftPos = 20;
+  let topPos = 200;
 
-  fill(COLOUR.ALMOST_WHITE)
+  g_ctx.textAlign = LEFT;
+  drawGameText(`Score:`, leftPos, topPos, SMALL);
+  topPos += 50;
+  drawGameText(`${g_displayScore}`, leftPos + 20, topPos, LARGE);
+  topPos += 60;
+  drawGameText(`Level: ${g_game.level}`, leftPos, topPos, SMALL);
+  topPos += 30;
+  drawGameText(`Goal: ${g_game.goal - g_game.stats.rowsCleared}`, leftPos, topPos, SMALL);
 
-  textSize(SMALL)
-  text(`Score:`, leftPos, topPos)
-  textSize(LARGE)
-  text(`${displayScore}`, leftPos + 20, topPos + 40)
-  textSize(SMALL)
-  text(`Level: ${game.level}`, leftPos, topPos + 70)
-  text(`Goal: ${game.goal - game.stats.rowsCleared}`, leftPos, topPos + 100)
+  topPos += 60;
 
-  topPos += 130
-
-  text(`Lines: ${game.stats.rowsCleared}`, leftPos, topPos + 30)
-  text(`Tetrises: ${game.stats.tetrises}`, leftPos, topPos + 60)
-  text(`T-Spin Minis: ${game.stats.tSpinMinis}`, leftPos, topPos + 90)
-  text(`T-Spins: ${game.stats.tSpins}`, leftPos, topPos + 120)
+  drawGameText(`Lines: ${g_game.stats.rowsCleared}`, leftPos, topPos, SMALL);
+  topPos += 30;
+  drawGameText(`Tetrises: ${g_game.stats.tetrises}`, leftPos, topPos, SMALL);
+  topPos += 30;
+  drawGameText(`T-Spin Minis: ${g_game.stats.tSpinMinis}`, leftPos, topPos, SMALL);
+  topPos += 30;
+  drawGameText(`T-Spins: ${g_game.stats.tSpins}`, leftPos, topPos, SMALL);
 }

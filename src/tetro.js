@@ -1,4 +1,4 @@
-import { BOARD_WIDTH, BOARD_HEIGHT, COLOUR, DIRECTION } from './constants'
+import { BOARD_WIDTH, BOARD_HEIGHT, COLOUR, DIRECTION } from './constants.js'
 
 class Tetro {
   constructor(colour, grid, srsObj) {

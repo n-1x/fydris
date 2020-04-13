@@ -1,8 +1,8 @@
-import { TETRO, TetroBag, ActiveTetro } from './tetro'
+import { TETRO, TetroBag, ActiveTetro } from './tetro.js'
 import { 
   BOARD_HEIGHT, BOARD_WIDTH, NEXT_SIZE,
-  MAX_LEVEL, FIXED_GOAL, DIRECTION, COLOUR, MOVE } from './constants'
-import { gridForEach, gridSome } from './helpers'
+  MAX_LEVEL, FIXED_GOAL, DIRECTION, COLOUR, MOVE } from './constants.js'
+import { gridForEach, gridSome } from './helpers.js'
 
 //return the 4 tSpin points based on the orientation
 //given. Only needs to be called when precomputing the points

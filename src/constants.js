@@ -27,8 +27,8 @@ export const DIRECTION = {
 }
 
 export const COLOUR = {
-  BACKGROUND: "#181818",
-  ALMOST_WHITE: [200, 200, 200],
+  BACKGROUND: [24, 24, 24],
+  ALMOST_WHITE: [230, 230, 230],
   RED: [209, 41, 0],
   ORANGE: [209, 121, 0],
   YELLOW: [209, 205, 0],
@@ -40,6 +40,7 @@ export const COLOUR = {
   NIGHT: [34, 34, 41],
   GRAY: [90, 90, 90],
   LIGHT_GRAY: [160, 160, 160],
+  DARK_GRAY: [90, 90, 90],
   ALMOST_BLACK: [35, 35, 35]
 }
 
@@ -53,7 +54,12 @@ export const KEY = {
   R: ('R').charCodeAt(0),
   C: ('C').charCodeAt(0),
   P: ('P').charCodeAt(0),
-  SPACE: (' ').charCodeAt(0)
+  SPACE: (' ').charCodeAt(0),
+  ENTER: 13,
+  LEFT_ARROW: 37,
+  UP_ARROW: 38,
+  RIGHT_ARROW: 39,
+  DOWN_ARROW: 40
 }
 
 export const STATE = {
