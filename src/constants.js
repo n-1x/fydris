@@ -1,20 +1,20 @@
-export const BOARD_WIDTH = 10
-export const BOARD_HEIGHT = 40
-export const BUFFER_ZONE_HEIGHT = 20 //tetris guideline
+export const BOARD_WIDTH = 10;
+export const BOARD_HEIGHT = 40;
+export const BUFFER_ZONE_HEIGHT = 20; //tetris guideline
 //pixels per cell
-export const CELL_SIZE = 30
+export const CELL_SIZE = 30;
 //amount of tetros you can see in advance, tetris guideline
-export const NEXT_SIZE = 6
-export const MAX_LEVEL = 15 //tetris guideline
-export const FIXED_GOAL = 10 //lines per level
-export const AUTO_REPEAT_FREQ = 50 //tetris guideline
-export const AUTO_REPEAT_DELAY = 300 //tetris guideline
+export const NEXT_SIZE = 6;
+export const MAX_LEVEL = 15; //tetris guideline
+export const FIXED_GOAL = 10; //lines per level
+export const AUTO_REPEAT_FREQ = 50; //tetris guideline
+export const AUTO_REPEAT_DELAY = 300; //tetris guideline
 
-export const LOCKDOWN_TIME = 500 //tetris guideline for ext. lockdown
-export const LOCKDOWN_MOVE_LIMIT = 15 //tetris guideline for ext. lockdown
+export const LOCKDOWN_TIME = 500; //tetris guideline for ext. lockdown
+export const LOCKDOWN_MOVE_LIMIT = 15; //tetris guideline for ext. lockdown
 
-export const LEFT_MARGIN = 8 * CELL_SIZE
-export const RIGHT_MARGIN = 8 * CELL_SIZE
+export const LEFT_MARGIN = 8 * CELL_SIZE;
+export const RIGHT_MARGIN = 8 * CELL_SIZE;
 
 export const DIRECTION = {
   NONE: 0,
@@ -24,7 +24,7 @@ export const DIRECTION = {
   DOWN: 4,
   CLOCKWISE: 5,
   ANTI_CLOCKWISE: 6
-}
+};
 
 export const COLOUR = {
   BACKGROUND: [24, 24, 24],
@@ -42,7 +42,7 @@ export const COLOUR = {
   LIGHT_GRAY: [160, 160, 160],
   DARK_GRAY: [90, 90, 90],
   ALMOST_BLACK: [35, 35, 35]
-}
+};
 
 export const KEY = {
   W: ('W').charCodeAt(0),
@@ -60,19 +60,18 @@ export const KEY = {
   UP_ARROW: 38,
   RIGHT_ARROW: 39,
   DOWN_ARROW: 40
-}
+};
 
 export const STATE = {
   NONE: 0,
   MENU: 1,
   PAUSED: 2,
   PLAYING: 3,
-  GAME_OVER: 4,
-  GAME_END: 5
-}
+  GAME_OVER: 4
+};
 
 export const MOVE = {
   NONE: 0,
   TSPIN: 1,
   TSPIN_MINI: 2
-}
+};

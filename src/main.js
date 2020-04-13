@@ -26,7 +26,7 @@ window.addEventListener("keydown", e => {
   }
 }, false);
 
-const VLARGE = 80;
+const VLARGE = 60;
 const LARGE = 45;
 const MEDIUM = 30;
 const SMALL = 20;
@@ -57,28 +57,42 @@ let g_lockdownRow = 0;
 
 const g_notifs = [];
 
+let highScores = null;
+
 let g_ctx = null;
 
 function getTimeSinceStart() {
   return performance.now() - g_startTime;
 }
 
-//window.addEventListener("resize", windowResized, false);
+
 window.addEventListener("DOMContentLoaded", setup, false);
 window.addEventListener("keydown", keyPressed, false);
 window.addEventListener("keyup", keyReleased, false);
 
 
 async function setup() {
-  const div = document.getElementById("game");
+  const gameDiv = document.getElementById("game");
+  const usernameDiv = document.createElement("div");
   const canvas = document.createElement("canvas");
+  const uname = document.createElement("input");
+  const unameLabel = document.createElement("label");
+
+  unameLabel.innerText = "Username (for high scores): ";
+  uname.value = "Player";
+  uname.id = "username";
+  uname.maxLength = 8;
+
+  usernameDiv.classList.add("usernameForm");
+  usernameDiv.appendChild(unameLabel);
+  usernameDiv.appendChild(uname);
 
   g_ctx = canvas.getContext("2d");
-
   g_ctx.canvas.width = CELL_SIZE * BOARD_WIDTH + LEFT_MARGIN + RIGHT_MARGIN;
   g_ctx.canvas.height = CELL_SIZE * (BOARD_HEIGHT - BUFFER_ZONE_HEIGHT);
-
-  div.appendChild(canvas);
+  
+  gameDiv.appendChild(usernameDiv);
+  gameDiv.appendChild(canvas);
 
   g_ctx.textAlign = CENTER;
   drawGameText("Loading...", centerX, 200, LARGE);
@@ -87,6 +101,8 @@ async function setup() {
     "url('../resources/unispace\ rg.ttf')");
   const loadedFont = await fontFace.load();
   document.fonts.add(loadedFont);
+
+  highScores = null;
   
   g_startTime = performance.now();
   g_lastFallTime = getTimeSinceStart();
@@ -118,53 +134,76 @@ function draw() {
 
     case STATE.PLAYING:
       //track the time passed
-      const timeSinceLastFall = g_lastFrameDrawTime - g_lastFallTime
+      const timeSinceLastFall = g_lastFrameDrawTime - g_lastFallTime;
       
       //the amount of time until the fall. / by 20 if softDropping
-      const fallTime = g_game.fallTime * 1000 / (g_game.softDropping ? 20 : 1)
+      const fallTime = g_game.fallTime * 1000 / (g_game.softDropping ? 20 : 1);
       
-      autoRepeat(g_currentTime)
+      autoRepeat(g_currentTime);
     
       if (g_lockdownStarted) {
-        g_lockdownTimer += g_frameTime
+        g_lockdownTimer += g_frameTime;
         
         //disable lockdown if on the new lowest row
         if (!g_game.isPieceOnSurface() && g_game.activeTetro.pos.row > g_lockdownRow) {
-          g_lockdownStarted = false
+          g_lockdownStarted = false;
         }
       }
 
       if (g_game.gameOver) {
-        g_state = g_game.gameCompleted ? STATE.GAME_END : STATE.GAME_OVER
+        g_state = STATE.GAME_OVER;
+        let name = document.getElementById("username").value;
+
+        if (name.length < 2)
+        {
+          name = "Player";
+        }
+        else if (name.length > 8)
+        {
+          name = name.substring(0, 8);
+        }
+
+        fetch("https://beautiful-mica-sundial.glitch.me/", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "text/plain"
+          },
+          body: JSON.stringify({
+            name: document.getElementById("username").value,
+            score: g_game.score
+          })
+        })
+          .then(res => {
+            return res.json();
+          })
+          .then(data => {
+            highScores = data;
+          });          
       }
       else if (g_lockdownStarted) { //lockdown has higher priority than fall timer
         if (g_lockdownTimer >= LOCKDOWN_TIME || 
           g_lockdownCounter >= LOCKDOWN_MOVE_LIMIT) {
           handleMoveData(g_game.fall())
-          g_lockdownStarted = false
-          g_lastFallTime = g_lastFrameDrawTime
+          g_lockdownStarted = false;
+          g_lastFallTime = g_lastFrameDrawTime;
         }
       }
       else if (timeSinceLastFall >= fallTime) { //fall timer
-        handleMoveData(g_game.fall())
-        checkLockdown()
-        g_lastFallTime = g_lastFrameDrawTime
+        handleMoveData(g_game.fall());
+        checkLockdown();
+        g_lastFallTime = g_lastFrameDrawTime;
       }
 
-      drawGame()
-      break
+      drawGame();
+      break;
 
     case STATE.PAUSED:
-      drawPauseMenu()
-      break
+      drawPauseMenu();
+      break;
 
     case STATE.GAME_OVER:
-      drawGameOverScreen()
-      break
-
-    case STATE.GAME_END:
-      drawGameEndScreen()
-      break
+      drawGameOverScreen(g_game.gameCompleted);
+      break;
   }
 
   window.requestAnimationFrame(draw);
@@ -251,13 +290,6 @@ function keyPressed(event) {
     }
   }
   else if (g_state == STATE.GAME_OVER) {
-    switch(event.keyCode) {
-      case KEY.R:
-        newGame();
-        break;
-    }
-  }
-  else if (g_state == STATE.GAME_END) {
     switch(event.keyCode) {
       case KEY.R:
         newGame();
@@ -575,20 +607,45 @@ function drawPauseMenu() {
 }
 
 
-function drawGameOverScreen() {
+function drawGameOverScreen(gameCompleted) {
+  //redraw the game so the end screen can be updates
+  //over the top of it
+  drawGame();
+
+  setFillStyle(COLOUR.ALMOST_WHITE);
   g_ctx.textAlign = CENTER;
-  setFillStyle(COLOUR.ALMOST_WHITE)
-  drawGameText("Game Over", centerX, 150, LARGE)
-  drawGameText("Press R to restart", centerX, 200, MEDIUM)
+
+  const topY = 80;
+
+  if (gameCompleted)
+  {
+    drawGameText("Contratulations!", centerX, topY, LARGE);
+  }
+  else
+  {
+    drawGameText("Game Over", centerX, topY, LARGE);
+  }
+
+  if (highScores === null)
+  {
+    drawGameText("Leading high scores...", centerX, topY + 100, MEDIUM);
+  } 
+  else
+  {
+    drawGameText("High Scores", centerX, topY + 100, MEDIUM);
+    let rowNum = 0;
+
+    g_ctx.textAlign = LEFT;
+    for (const [name, score] of highScores)
+    {
+      ++rowNum;
+      drawGameText(`${name}: ${score}`, centerX - 150, 200 + rowNum * 40, SMALL);
+    }
+  }
+
+  g_ctx.textAlign = CENTER;
+  drawGameText("Press R to restart", centerX, 500, MEDIUM);
 }
-
-
-function drawGameEndScreen() {
-  textAlign(CENTER)
-  drawGameText("Contratulations!", centerX, 150, LARGE);
-  drawGameText("Press R to restart", centerX, 200, MEDIUM);
-}
-
 
 function drawGameInfo() {
   const leftPos = 20;
