@@ -98,7 +98,7 @@ async function setup() {
   drawGameText("Loading...", centerX, 200, LARGE);
 
   const fontFace = new FontFace("Unispace", 
-    "url('../resources/unispace\ rg.ttf')");
+    "url('fydris/resources/unispace\ rg.ttf')");
   const loadedFont = await fontFace.load();
   document.fonts.add(loadedFont);
 
