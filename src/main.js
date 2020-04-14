@@ -55,20 +55,12 @@ let g_lockdownCounter = 0;
 let g_lockdownStarted = false;
 let g_lockdownRow = 0;
 
-const g_notifs = [];
-
 let highScores = null;
-
 let g_ctx = null;
 
-function getTimeSinceStart() {
-  return performance.now() - g_startTime;
-}
-
+const g_notifs = [];
 
 window.addEventListener("DOMContentLoaded", setup, false);
-window.addEventListener("keydown", keyPressed, false);
-window.addEventListener("keyup", keyReleased, false);
 
 
 async function setup() {
@@ -77,11 +69,16 @@ async function setup() {
   const canvas = document.createElement("canvas");
   const uname = document.createElement("input");
   const unameLabel = document.createElement("label");
+  const storedUname = localStorage.getItem("username");
 
   unameLabel.innerText = "Username (for high scores): ";
-  uname.value = "Player";
+  uname.value = storedUname ? storedUname : "Player";
   uname.id = "username";
   uname.maxLength = 8;
+  uname.tabIndex = 1;
+  uname.onchange = () => {
+    localStorage.setItem("username", uname.value);
+  };
 
   usernameDiv.classList.add("usernameForm");
   usernameDiv.appendChild(unameLabel);
@@ -90,12 +87,15 @@ async function setup() {
   g_ctx = canvas.getContext("2d");
   g_ctx.canvas.width = CELL_SIZE * BOARD_WIDTH + LEFT_MARGIN + RIGHT_MARGIN;
   g_ctx.canvas.height = CELL_SIZE * (BOARD_HEIGHT - BUFFER_ZONE_HEIGHT);
+
+  canvas.tabIndex = 2;
+  canvas.addEventListener("keydown", keyPressed, false);
+  canvas.addEventListener("keyup", keyReleased, false);
   
   gameDiv.appendChild(usernameDiv);
   gameDiv.appendChild(canvas);
 
   g_ctx.textAlign = CENTER;
-  drawGameText("Loading...", centerX, 200, LARGE);
 
   const fontFace = new FontFace("Unispace", 
     "url('fydris/resources/unispace\ rg.ttf')");
@@ -413,6 +413,10 @@ function newGame() {
   g_game = new Game();
   g_state = STATE.PLAYING;
   g_displayScore = 0;
+}
+
+function getTimeSinceStart() {
+  return performance.now() - g_startTime;
 }
 
 
