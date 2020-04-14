@@ -664,7 +664,7 @@ function drawGameInfo() {
   topPos += 60;
   drawGameText(`Level: ${g_game.level}`, leftPos, topPos, SMALL);
   topPos += 30;
-  drawGameText(`Goal: ${goal < 0 ? "Done" : goal}`, leftPos, topPos, SMALL);
+  drawGameText(`Goal: ${g_game.gameCompleted ? "Done" : goal}`, leftPos, topPos, SMALL);
 
   topPos += 60;
 
