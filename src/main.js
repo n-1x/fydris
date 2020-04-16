@@ -190,7 +190,7 @@ function draw() {
       }
       else if (timeSinceLastFall >= fallTime) { //fall timer
         handleMoveData(g_game.fall());
-        checkLockdown();
+        updateLockdown();
         g_lastFallTime = g_lastFrameDrawTime;
       }
 
@@ -241,13 +241,13 @@ function keyPressed(event) {
       case KEY.UP_ARROW:
         g_game.spin(DIRECTION.CLOCKWISE);
         //sound.rotateC.play()
-        checkLockdown();
+        updateLockdown();
         break;
       
       case KEY.Q:
         g_game.spin(DIRECTION.ANTI_CLOCKWISE);
         //sound.rotateA.play()
-        checkLockdown();
+        updateLockdown();
         break;
       
       case KEY.C:
@@ -326,7 +326,7 @@ function moveAttempt(direction) {
   //this will tick down the lockdownCounter even when the piece
   //isn't moving, resulting in an unexpected place
   if (g_game.move(direction)) {
-    checkLockdown();
+    updateLockdown();
   }
 
   //sound.move.play()
@@ -367,7 +367,7 @@ function handleMoveData(moveData) {
 }
 
 
-function checkLockdown() {
+function updateLockdown() {
   if (g_lockdownStarted) {
     g_lockdownTimer = 0;
     ++g_lockdownCounter;

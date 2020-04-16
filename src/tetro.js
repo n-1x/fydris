@@ -1,4 +1,4 @@
-import { BOARD_WIDTH, BOARD_HEIGHT, COLOUR, DIRECTION } from './constants.js'
+import { BOARD_WIDTH, COLOUR, DIRECTION } from './constants.js'
 
 class Tetro {
   constructor(colour, grid, srsObj) {
@@ -11,7 +11,7 @@ class Tetro {
     //private function for generating the rotations of the tetro
     //around srs point 1
     const rotateGrid = function(grid, direction) {
-      const newGrid = [] //will hold all the new rows
+      const newGrid = []; //will hold all the new rows
       const oldWidth = grid[0].length;
       const oldHeight = grid.length;
         
@@ -20,28 +20,28 @@ class Tetro {
   
         for (let x = 0; x < oldHeight; ++x) {
           if (direction === DIRECTION.CLOCKWISE) {
-            newRow[x] = grid[oldHeight - x - 1][y]
+            newRow[x] = grid[oldHeight - x - 1][y];
           }
           else { //rotate anti-clockwise
-            newRow[x] = grid[x][oldWidth - y - 1]
+            newRow[x] = grid[x][oldWidth - y - 1];
           }
         }
         //add the new row
-        newGrid[y] = newRow
+        newGrid[y] = newRow;
       }
   
-      return newGrid
+      return newGrid;
     }
 
     //generate the other 3 rotations
     for(let i = 0; i < 3; ++i) {
-      this.rotations.push(rotateGrid(this.rotations[i], DIRECTION.CLOCKWISE))
+      this.rotations.push(rotateGrid(this.rotations[i], DIRECTION.CLOCKWISE));
     }
 
-    this.rotations[0].points = srsObj.NORTH
-    this.rotations[1].points = srsObj.EAST
-    this.rotations[2].points = srsObj.SOUTH
-    this.rotations[3].points = srsObj.WEST
+    this.rotations[0].points = srsObj.NORTH;
+    this.rotations[1].points = srsObj.EAST;
+    this.rotations[2].points = srsObj.SOUTH;
+    this.rotations[3].points = srsObj.WEST;
   }
 }
 
@@ -49,14 +49,14 @@ class Tetro {
 //defines a tetro that can be moved and spun by the player
 export class ActiveTetro {
   constructor(tetro = TETRO.iShape) {
-    this.tetro = tetro
-    this.pos = { row: 19, col: BOARD_WIDTH / 2 - 1 }
-    this.orientation = 0
-    this.grid = this.tetro.rotations[this.orientation]
+    this.tetro = tetro;
+    this.pos = { row: 19, col: BOARD_WIDTH / 2 - 1 };
+    this.orientation = 0;
+    this.grid = this.tetro.rotations[this.orientation];
 
     //make sure that the l piece is centered
-    if (this.tetro == TETRO.iShape) {
-      this.pos.col = BOARD_WIDTH / 2 - 2
+    if (this.tetro === TETRO.iShape) {
+      this.pos.col = BOARD_WIDTH / 2 - 2;
     }
   }
 }
@@ -329,4 +329,4 @@ export const TETRO = {
       [-1, 0]
     ]
   })
-}
+};
