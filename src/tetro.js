@@ -2,24 +2,24 @@ import { BOARD_WIDTH, BOARD_HEIGHT, COLOUR, DIRECTION } from './constants.js'
 
 class Tetro {
   constructor(colour, grid, srsObj) {
-    this.rotations = []
-    this.colour = colour
+    this.rotations = [];
+    this.colour = colour;
     
     //the given grid will be rotation[0] of the Tetro
-    this.rotations[0] = grid
+    this.rotations[0] = grid;
 
     //private function for generating the rotations of the tetro
     //around srs point 1
     const rotateGrid = function(grid, direction) {
       const newGrid = [] //will hold all the new rows
-      const oldWidth = grid[0].length
-      const oldHeight = grid.length
+      const oldWidth = grid[0].length;
+      const oldHeight = grid.length;
         
       for (let y = 0; y < oldWidth; ++y) {
-        const newRow = [] //first row of the new shape
+        const newRow = []; //first row of the new shape
   
         for (let x = 0; x < oldHeight; ++x) {
-          if (direction == DIRECTION.CLOCKWISE) {
+          if (direction === DIRECTION.CLOCKWISE) {
             newRow[x] = grid[oldHeight - x - 1][y]
           }
           else { //rotate anti-clockwise
@@ -64,36 +64,28 @@ export class ActiveTetro {
 
 export class TetroBag {
   constructor() {
-    this.bag = []
-    this.fillBag()
+    this.bag = [];
+    this.fillBag();
   }
 
   
   fillBag() {
-    this.bag = Object.values(TETRO)
+    this.bag = Object.values(TETRO);
 
     //shuffle the bag
-    for (let i = this.bag.length - 1; i > 0; --i) {
-      const r = Math.floor(Math.random() * i);
-      [this.bag[i], this.bag[r]] = [this.bag[r], this.bag[i]]
+    for (let i = 0; i < this.bag.length; ++i) {
+      const r = i + Math.floor(Math.random() * this.bag.length - i);
+      [this.bag[i], this.bag[r]] = [this.bag[r], this.bag[i]];
     }
   }
 
 
   take() {
     if (this.bag.length === 0) {
-      this.fillBag()
+      this.fillBag();
     }
 
-    return this.bag.shift()
-  }
-}
-
-
-class SRSPoint {
-  constructor(rowOffset, colOffset) {
-    this.row = rowOffset
-    this.col = colOffset
+    return this.bag.shift();
   }
 }
 
