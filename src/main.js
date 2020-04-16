@@ -11,7 +11,7 @@ import {
 
 //auto pause if the focus moves from the game
 window.onblur = () => {
-  if (g_state == STATE.PLAYING) {
+  if (g_state === STATE.PLAYING) {
     g_state = STATE.PAUSED;
   }
 };
@@ -49,7 +49,6 @@ const g_autoRepeats = [];
 let g_autoRepeatStartTime = 0;
 let g_lastAutoRepeatTime = 0;
 
-let g_startTime = 0;
 let g_lockdownTimer = 0;
 let g_lockdownCounter = 0;
 let g_lockdownStarted = false;
@@ -104,8 +103,8 @@ async function setup() {
 
   highScores = null;
   
-  g_startTime = performance.now();
-  g_lastFallTime = getTimeSinceStart();
+  g_lastFallTime = performance.now();
+  g_lastFrameDrawTime = g_lastFallTime;
   g_game = new Game();
 
   window.requestAnimationFrame(draw);
@@ -113,24 +112,24 @@ async function setup() {
 
 
 function draw() {
-  g_currentTime = Math.floor(getTimeSinceStart())
-  g_frameTime = g_currentTime - g_lastFrameDrawTime
+  g_currentTime = performance.now();
+  g_frameTime = g_currentTime - g_lastFrameDrawTime;
 
-  g_lastFrameDrawTime += g_frameTime
+  g_lastFrameDrawTime += g_frameTime;
 
   //update the displayed score
   if (g_displayScore < g_game.score) {
-    g_displayScore += g_frameTime * g_game.level
+    g_displayScore += g_frameTime * g_game.level;
 
     if (g_displayScore > g_game.score) {
-      g_displayScore = g_game.score
+      g_displayScore = g_game.score;
     }
   }
 
   switch(g_state) {
     case STATE.MENU:
-      drawMenu()
-      break
+      drawMenu();
+      break;
 
     case STATE.PLAYING:
       //track the time passed
@@ -139,7 +138,7 @@ function draw() {
       //the amount of time until the fall. / by 20 if softDropping
       const fallTime = g_game.fallTime * 1000 / (g_game.softDropping ? 20 : 1);
       
-      autoRepeat(g_currentTime);
+      autoRepeat();
     
       if (g_lockdownStarted) {
         g_lockdownTimer += g_frameTime;
@@ -218,7 +217,7 @@ function keyPressed(event) {
   let returnVal = !annoyingKeys.includes(event.keyCode);
   
   //stop keys being logged twice
-  if (g_state == STATE.PLAYING) {
+  if (g_state === STATE.PLAYING) {
     //for non-ascii keys
     switch(event.keyCode) { 
       case KEY.A:
@@ -271,14 +270,14 @@ function keyPressed(event) {
         break;
     }
   }
-  else if (g_state == STATE.MENU) {
+  else if (g_state === STATE.MENU) {
     switch (event.keyCode) {
       case KEY.ENTER:
         g_state = STATE.PLAYING;
         break;
     }
   }
-  else if (g_state == STATE.PAUSED) {
+  else if (g_state === STATE.PAUSED) {
     switch (event.keyCode) {
       case KEY.P:
         g_state = STATE.PLAYING;
@@ -289,7 +288,7 @@ function keyPressed(event) {
         break;
     }
   }
-  else if (g_state == STATE.GAME_OVER) {
+  else if (g_state === STATE.GAME_OVER) {
     switch(event.keyCode) {
       case KEY.R:
         newGame();
@@ -360,7 +359,7 @@ function handleMoveData(moveData) {
     //   (backToBack ? sound.tSpin : sound.tSpinBTB).play()
     // }
 
-    if (string != "") {
+    if (string !== "") {
       g_notifs.push(new Notif(string, LARGE));
     }
   }
@@ -381,14 +380,14 @@ function updateLockdown() {
 }
 
 
-function autoRepeat(time) {
+function autoRepeat() {
   const direction = g_autoRepeats[0];
   //if a movement input should be repeated
   if (direction) {
-    const timeSinceKeyHeld = time - g_autoRepeatStartTime;
+    const timeSinceKeyHeld = g_currentTime - g_autoRepeatStartTime;
 
     if (timeSinceKeyHeld >= AUTO_REPEAT_DELAY) {
-      const timeSinceLastRepeat = time - g_lastAutoRepeatTime;
+      const timeSinceLastRepeat = g_currentTime - g_lastAutoRepeatTime;
 
       if (timeSinceLastRepeat >= AUTO_REPEAT_FREQ) {
         moveAttempt(direction);
@@ -401,7 +400,7 @@ function autoRepeat(time) {
 function autoRepeatEnd(direction) {
   g_autoRepeats.splice(g_autoRepeats.lastIndexOf(direction), 1);
   
-  if (g_autoRepeats.length != 0) {
+  if (g_autoRepeats.length !== 0) {
     g_game.move(g_autoRepeats[g_autoRepeats.length - 1]);
   }
 
@@ -413,10 +412,6 @@ function newGame() {
   g_game = new Game();
   g_state = STATE.PLAYING;
   g_displayScore = 0;
-}
-
-function getTimeSinceStart() {
-  return performance.now() - g_startTime;
 }
 
 
@@ -479,7 +474,7 @@ function drawBoard() {
     const row = g_game.board[rowNum]
 
     row.forEach((cell, colNum) => {
-      if (cell != 0) {
+      if (cell !== 0) {
         setFillStyle(Object.values(COLOUR)[cell]);
       }
       else {
