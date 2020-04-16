@@ -118,7 +118,7 @@ function draw() {
 
   //update the displayed score
   if (g_displayScore < g_game.score) {
-    g_displayScore += Math.floor(g_frameTime * g_game.level);
+    g_displayScore += g_frameTime * g_game.level;
 
     if (g_displayScore > g_game.score) {
       g_displayScore = g_game.score;
@@ -651,7 +651,7 @@ function drawGameInfo() {
   g_ctx.textAlign = LEFT;
   drawGameText(`Score:`, leftPos, topPos, SMALL);
   topPos += 50;
-  drawGameText(`${g_displayScore}`, leftPos + 20, topPos, LARGE);
+  drawGameText(`${Math.floor(g_displayScore)}`, leftPos + 20, topPos, LARGE);
   topPos += 60;
   drawGameText(`Level: ${g_game.level}`, leftPos, topPos, SMALL);
   topPos += 30;
