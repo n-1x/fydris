@@ -1,8 +1,10 @@
-export const BOARD_WIDTH = 10;
-export const BOARD_HEIGHT = 40;
-export const BUFFER_ZONE_HEIGHT = 20; //tetris guideline
 //pixels per cell
 export const CELL_SIZE = 30;
+export const BOARD_WIDTH = 10;
+export const BOARD_HEIGHT = 22;
+export const BUFFER_ZONE_HEIGHT = 21; //tetris guideline
+export const PEEK_HEIGHT = CELL_SIZE - 10; // px of 21st row to hide
+export const BOARD_TOP_Y = -PEEK_HEIGHT - CELL_SIZE; //accounting for hidden top row and peek
 //amount of tetros you can see in advance, tetris guideline
 export const NEXT_SIZE = 6;
 export const MAX_LEVEL = 15; //tetris guideline

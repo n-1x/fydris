@@ -3,9 +3,9 @@ import Game from './game.js';
 import Notif from './notif.js';
 import {
   BOARD_WIDTH, BOARD_HEIGHT, CELL_SIZE, BUFFER_ZONE_HEIGHT, 
-  NEXT_SIZE, AUTO_REPEAT_DELAY, AUTO_REPEAT_FREQ, LEFT_MARGIN,
+  BOARD_TOP_Y, AUTO_REPEAT_DELAY, AUTO_REPEAT_FREQ, LEFT_MARGIN,
   RIGHT_MARGIN, LOCKDOWN_TIME, LOCKDOWN_MOVE_LIMIT,
-  DIRECTION, STATE, KEY, COLOUR, MOVE
+  DIRECTION, STATE, KEY, COLOUR, PEEK_HEIGHT
 } from './constants.js';
 
 
@@ -85,7 +85,7 @@ async function setup() {
 
   g_ctx = canvas.getContext("2d");
   g_ctx.canvas.width = CELL_SIZE * BOARD_WIDTH + LEFT_MARGIN + RIGHT_MARGIN;
-  g_ctx.canvas.height = CELL_SIZE * (BOARD_HEIGHT - BUFFER_ZONE_HEIGHT);
+  g_ctx.canvas.height = CELL_SIZE * (BUFFER_ZONE_HEIGHT - 1) + (CELL_SIZE - PEEK_HEIGHT);
 
   canvas.tabIndex = 2;
   canvas.addEventListener("keydown", keyPressed, false);
@@ -103,9 +103,8 @@ async function setup() {
 
   highScores = null;
   
-  g_lastFallTime = performance.now();
-  g_lastFrameDrawTime = g_lastFallTime;
-  g_game = new Game();
+  newGame();
+  //g_state = STATE.MENU;
 
   window.requestAnimationFrame(draw);
 }
@@ -412,6 +411,8 @@ function newGame() {
   g_game = new Game();
   g_state = STATE.PLAYING;
   g_displayScore = 0;
+  g_lastFallTime = performance.now();
+  g_lastFrameDrawTime = g_lastFallTime;
 }
 
 
@@ -470,28 +471,25 @@ function drawGame() {
 
 
 function drawBoard() {
-  for(let rowNum = BUFFER_ZONE_HEIGHT; rowNum < BOARD_HEIGHT; ++rowNum) {
-    const row = g_game.board[rowNum]
-
+  //start at 1 so don't draw 22nd (top) row
+  for(let rowNum = 1; rowNum < BOARD_HEIGHT; ++rowNum) {
+    const row = g_game.board[rowNum];
+    const y = BOARD_TOP_Y + rowNum * CELL_SIZE;
+    
     row.forEach((cell, colNum) => {
+      const x = LEFT_MARGIN + colNum * CELL_SIZE;
+
       if (cell !== 0) {
         setFillStyle(Object.values(COLOUR)[cell]);
       }
       else {
         setFillStyle(COLOUR.NIGHT);
       }
-
-      g_ctx.fillRect(LEFT_MARGIN + colNum * CELL_SIZE, 
-        (rowNum - BUFFER_ZONE_HEIGHT) * CELL_SIZE,
-        CELL_SIZE, CELL_SIZE
-      );
-
       g_ctx.lineWidth = 2;
       setStrokeStyle(COLOUR.DARK_GRAY);
-      g_ctx.strokeRect(LEFT_MARGIN + colNum * CELL_SIZE, 
-        (rowNum - BUFFER_ZONE_HEIGHT) * CELL_SIZE,
-        CELL_SIZE, CELL_SIZE
-      );
+
+      g_ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+      g_ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
     });
   }
 }
@@ -502,11 +500,9 @@ function drawBoard() {
 function drawTetroOnBoard(tetroGrid, rowPos, colPos,
   fillColour, strokeColour) {
   
-  g_ctx.lineWidth = 2;
-
   drawTetro(tetroGrid, 
     LEFT_MARGIN + (colPos * CELL_SIZE),
-    CELL_SIZE * (rowPos - BUFFER_ZONE_HEIGHT), 1.0, 
+    BOARD_TOP_Y + CELL_SIZE * rowPos, 1.0, 
     fillColour, strokeColour
   );
 }

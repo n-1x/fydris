@@ -90,6 +90,7 @@ class Game {
     for(let y = 0; y < BOARD_HEIGHT; ++y) {
       this.board.push(Array(BOARD_WIDTH).fill(0));
     }
+
   }
   
 
@@ -284,11 +285,14 @@ class Game {
                               newTetro.pos.row,
                               newTetro.pos.col)) {
       this.activeTetro = newTetro;
+      this.calculateGhostOffset();
+
+      //try to instantly move down one space
+      this.move(DIRECTION.DOWN);
     } else {
       this.gameOver = true;
     }
 
-    this.calculateGhostOffset();
     this.canHold = true;
   }
 

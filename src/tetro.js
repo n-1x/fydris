@@ -50,13 +50,13 @@ class Tetro {
 export class ActiveTetro {
   constructor(tetro = TETRO.iShape) {
     this.tetro = tetro;
-    this.pos = { row: 19, col: BOARD_WIDTH / 2 - 1 };
+    this.pos = { row: 0, col: 3 };
     this.orientation = 0;
     this.grid = this.tetro.rotations[this.orientation];
 
     //make sure that the l piece is centered
-    if (this.tetro === TETRO.iShape) {
-      this.pos.col = BOARD_WIDTH / 2 - 2;
+    if (this.tetro === TETRO.oShape) {
+      ++this.pos.col;
     }
   }
 }
