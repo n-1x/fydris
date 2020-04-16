@@ -104,7 +104,7 @@ async function setup() {
   highScores = null;
   
   newGame();
-  //g_state = STATE.MENU;
+  g_state = STATE.MENU;
 
   window.requestAnimationFrame(draw);
 }
