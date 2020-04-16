@@ -118,7 +118,7 @@ function draw() {
 
   //update the displayed score
   if (g_displayScore < g_game.score) {
-    g_displayScore += g_frameTime * g_game.level;
+    g_displayScore += Math.floor(g_frameTime * g_game.level);
 
     if (g_displayScore > g_game.score) {
       g_displayScore = g_game.score;
