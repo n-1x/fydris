@@ -1,9 +1,10 @@
-import { BOARD_WIDTH, COLOUR, DIRECTION } from './constants.js'
+import { COLOUR, DIRECTION } from './constants.js'
 
 class Tetro {
   constructor(colour, grid, srsObj) {
     this.rotations = [];
     this.colour = colour;
+    this.srs = srsObj;
     
     //the given grid will be rotation[0] of the Tetro
     this.rotations[0] = grid;
@@ -37,11 +38,6 @@ class Tetro {
     for(let i = 0; i < 3; ++i) {
       this.rotations.push(rotateGrid(this.rotations[i], DIRECTION.CLOCKWISE));
     }
-
-    this.rotations[0].points = srsObj.NORTH;
-    this.rotations[1].points = srsObj.EAST;
-    this.rotations[2].points = srsObj.SOUTH;
-    this.rotations[3].points = srsObj.WEST;
   }
 }
 
@@ -89,6 +85,113 @@ export class TetroBag {
   }
 }
 
+const SRS_I = [ //SRS Points
+  [ //NORTH
+    [0, 1],
+    [3, 1],
+    [0, 1],
+    [3, 1]
+  ],
+  [ //EAST
+    [2, 1],
+    [2, 1],
+    [2, 0],
+    [2, 3]
+  ],
+  [ //SOUTH
+    [3, 1],
+    [0, 1],
+    [3, 2],
+    [0, 2]
+  ],
+  [ //WEST
+    [1, 1],
+    [1, 1],
+    [1, 3],
+    [1, 0]
+  ]
+];
+
+const SRS_T = [
+  [ //NORTH
+    [1, 1],
+    [1, 1],
+    [1, 1],
+    [1, 1]
+  ],
+  [ //EAST
+    [2, 1],
+    [2, 2],
+    [1, -1],
+    [2, -1]
+  ],
+  [ //SOUTH
+    [1, 1],
+    [1, 1],
+    [1, 1],
+    [1, 1]
+  ],
+  [ //WEST
+    [0, 1],
+    [0, 2],
+    [1, -1],
+    [0, -1]
+  ]
+];
+
+const SRS_JL = [
+  [ //NORTH
+    [1, 1],
+    [1, 1],
+    [1, 1],
+    [1, 1]
+  ],
+  [ //EAST
+    [2, 1],
+    [2, 2],
+    [1, -1],
+    [2, -1]
+  ],
+  [ //SOUTH
+    [1, 1],
+    [1, 1],
+    [1, 1],
+    [1, 1]
+  ],
+  [ //WEST
+    [0, 1],
+    [0, 2],
+    [1, -1],
+    [0, -1]
+  ]
+];
+
+const SRS_SZ = [
+  [ //NORTH
+    [1, 1],
+    [1, 1],
+    [1, 1],
+    [1, 1]
+  ],
+  [ //EAST
+    [2, 1],
+    [2, 2],
+    [1, -1],
+    [2, -1]
+  ],
+  [ //SOUTH
+    [1, 1],
+    [1, 1],
+    [1, 1],
+    [1, 1]
+  ],
+  [ //WEST
+    [0, 1],
+    [0, 2],
+    [1, -1],
+    [0, -1]
+  ]
+];
 
 export const TETRO = {
   iShape: new Tetro(COLOUR.LIGHT_BLUE, [
@@ -96,237 +199,40 @@ export const TETRO = {
     [1, 1, 1, 1],
     [0, 0, 0, 0],
     [0, 0, 0, 0]
-  ],
-  { //Offsets for SRS Points
-    NORTH: [
-      [1, 0], //point 2
-      [1, 3], //point 3
-      [1, 0], //point 4
-      [1, 3]  //point 5
-    ],
-
-    EAST: [
-      [1, 2],
-      [1, 2],
-      [0, 2],
-      [3, 2]
-    ],
-
-    SOUTH: [
-      [1, 3],
-      [1, 0],
-      [2, 3],
-      [2, 0]
-    ],
-
-    WEST: [
-      [1, 1],
-      [1, 1],
-      [3, 1],
-      [0, 1]
-    ]
-  }),
-
-  jShape: new Tetro(COLOUR.BLUE, [
-    [1, 0, 0],
-    [1, 1, 1],
-    [0, 0, 0]
-  ], {
-    NORTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
-
-    EAST: [
-      [1, 2],
-      [2, 2],
-      [-1, 1],
-      [-1, -2]
-    ],
-
-    SOUTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
-
-    WEST: [
-      [0, 1],
-      [2, 0],
-      [-1, 1],
-      [-1, 0]
-    ]
-  }),
-
-  lShape: new Tetro(COLOUR.ORANGE, [
-    [0, 0, 1],
-    [1, 1, 1],
-    [0, 0, 0]
-  ], {
-    NORTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
-
-    EAST: [
-      [1, 2],
-      [2, 2],
-      [-1, 1],
-      [-1, 2]
-    ],
-
-    SOUTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
-
-    WEST: [
-      [1, 0],
-      [2, 0],
-      [-1, 1],
-      [-1, 0]
-    ]
-  }),
-
-  oShape: new Tetro(COLOUR.YELLOW, [
-    [1, 1],
-    [1, 1]
-  ], {
-    NORTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
-
-    EAST: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
-
-    SOUTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
-
-    WEST: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ]
-  }),
-
-  sShape: new Tetro(COLOUR.GREEN, [
-    [0, 1, 1],
-    [1, 1, 0],
-    [0, 0, 0]
-  ], {
-    NORTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
-
-    EAST: [
-      [1, 2],
-      [2, 2],
-      [-1, 1],
-      [-1, 2]
-    ],
-
-    SOUTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
-
-    WEST: [
-      [1, 0],
-      [2, 0],
-      [-1, 1],
-      [-1, 0]
-    ]
-  }),
+  ], SRS_I),
 
   tShape: new Tetro(COLOUR.PURPLE, [
     [0, 1, 0],
     [1, 1, 1],
     [0, 0, 0]
-  ], {
-    NORTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
+  ], SRS_T),
 
-    EAST: [
-      [1, 2],
-      [2, 2],
-      [-1, 1],
-      [-1, 2]
-    ],
+  lShape: new Tetro(COLOUR.ORANGE, [
+    [0, 0, 1],
+    [1, 1, 1],
+    [0, 0, 0]
+  ], SRS_JL),
 
-    SOUTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
+  jShape: new Tetro(COLOUR.BLUE, [
+    [1, 0, 0],
+    [1, 1, 1],
+    [0, 0, 0]
+  ], SRS_JL),
 
-    WEST: [
-      [1, 0],
-      [2, 0],
-      [-1, 1],
-      [-1, 0]
-    ]
-  }),
+  oShape: new Tetro(COLOUR.YELLOW, [
+    [1, 1],
+    [1, 1]
+  ], []),
+
+  sShape: new Tetro(COLOUR.GREEN, [
+    [0, 1, 1],
+    [1, 1, 0],
+    [0, 0, 0]
+  ], SRS_SZ),
 
   zShape: new Tetro(COLOUR.RED, [
     [1, 1, 0],
     [0, 1, 1],
     [0, 0, 0]
-  ], {
-    NORTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
-
-    EAST: [
-      [1, 2],
-      [2, 2],
-      [-1, 1],
-      [-1, 2]
-    ],
-
-    SOUTH: [
-      [1, 1],
-      [1, 1],
-      [1, 1],
-      [1, 1]
-    ],
-
-    WEST: [
-      [1, 0],
-      [2, 0],
-      [-1, 1],
-      [-1, 0]
-    ]
-  })
+  ], SRS_SZ)
 };

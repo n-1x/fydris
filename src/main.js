@@ -145,6 +145,7 @@ function draw() {
         //disable lockdown if on the new lowest row
         if (!g_game.isPieceOnSurface() && g_game.activeTetro.pos.row > g_lockdownRow) {
           g_lockdownStarted = false;
+          g_locdownTimer = 0;
         }
       }
 
@@ -240,6 +241,7 @@ function keyPressed(event) {
         g_game.spin(DIRECTION.CLOCKWISE);
         //sound.rotateC.play()
         updateLockdown();
+        g_lockdownTimer = 0;
         break;
       
       case KEY.Q:
@@ -413,6 +415,8 @@ function newGame() {
   g_displayScore = 0;
   g_lastFallTime = performance.now();
   g_lastFrameDrawTime = g_lastFallTime;
+  g_lockdownTimer = 0;
+  g_lockdownStarted = false;
 }
 
 

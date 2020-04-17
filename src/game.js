@@ -336,8 +336,8 @@ class Game {
     }
     
     const spunGrid = this.activeTetro.tetro.rotations[newOrientation];
-    const oldPoints = thisTetro.tetro.rotations[thisTetro.orientation].points;
-    const newPoints = thisTetro.tetro.rotations[newOrientation].points;
+    const oldPoints = thisTetro.tetro.srs[thisTetro.orientation];
+    const newPoints = thisTetro.tetro.srs[newOrientation];
     let rowTranslate = 0;
     let colTranslate = 0;
     let pointCounter = 0; //index 0 is point 2
@@ -345,13 +345,13 @@ class Game {
     //attempt normal spin by checking if new grid fits on board
     spinPossible = this.tetroFitsOnBoard(spunGrid, pos.row, pos.col);
     
-    //for each of the rotation points, until a fit is found
-    while (!spinPossible && pointCounter < 4) {
+    //for each of the SRS points, until a fit is found
+    while (!spinPossible && pointCounter < oldPoints.length) {
       const oldPoint = oldPoints[pointCounter];
       const newPoint = newPoints[pointCounter];
 
-      rowTranslate = oldPoint[0] - newPoint[0];
-      colTranslate = oldPoint[1] - newPoint[1];
+      colTranslate = oldPoint[0] - newPoint[0];
+      rowTranslate = oldPoint[1] - newPoint[1];
 
       spinPossible = this.tetroFitsOnBoard(spunGrid, pos.row + rowTranslate, 
                                                   pos.col + colTranslate);
@@ -384,7 +384,7 @@ class Game {
 
     this.calculateGhostOffset();
 
-    return spinPossiblel;
+    return spinPossible;
   }
 
 
