@@ -627,7 +627,7 @@ function drawGameOverScreen(gameCompleted) {
 
   if (highScores === null)
   {
-    drawGameText("Leading high scores...", centerX, topY + 100, MEDIUM);
+    drawGameText("Loading high scores...", centerX, topY + 100, MEDIUM);
   } 
   else
   {
