@@ -50,7 +50,7 @@ export class ActiveTetro {
     this.orientation = 0;
     this.grid = this.tetro.rotations[this.orientation];
 
-    //make sure that the l piece is centered
+    //make sure that the o piece is centered
     if (this.tetro === TETRO.oShape) {
       ++this.pos.col;
     }
@@ -222,7 +222,7 @@ export const TETRO = {
   oShape: new Tetro(COLOUR.YELLOW, [
     [1, 1],
     [1, 1]
-  ], []),
+  ], []), //doesn't change when rotated so no SRS
 
   sShape: new Tetro(COLOUR.GREEN, [
     [0, 1, 1],
