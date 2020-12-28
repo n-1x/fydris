@@ -433,7 +433,7 @@ function setStrokeStyle(colour) {
 function fillBG(colour) {
   const tempCol = g_ctx.fillStyle;
   setFillStyle(colour);
-  g_ctx.fillRect(0, 0, g_ctx.canvas.width, g_ctx.canvas.height);
+  g_ctx.clearRect(0, 0, g_ctx.canvas.width, g_ctx.canvas.height);
   g_ctx.fillStyle = tempCol;
 }
 
