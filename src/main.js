@@ -145,7 +145,7 @@ function draw() {
         //disable lockdown if on the new lowest row
         if (!g_game.isPieceOnSurface() && g_game.activeTetro.pos.row > g_lockdownRow) {
           g_lockdownStarted = false;
-          g_locdownTimer = 0;
+          g_lockdownTimer = 0;
         }
       }
 
